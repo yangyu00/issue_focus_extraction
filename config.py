@@ -26,7 +26,7 @@ def _load_dotenv():
     """可选加载项目根目录的 .env（不引入额外依赖）。
 
     优先级：显式导出的环境变量 > .env > config.py 内置默认值。
-    .env 不入库，只提交 .env.example 模板。
+    .env 随项目一起交付（个人局域网部署，凭据按实际环境照实填写）。
     """
     path = os.path.join(PROJECT_PATH, ".env")
     if not os.path.isfile(path):

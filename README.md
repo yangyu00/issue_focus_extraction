@@ -36,7 +36,8 @@ python generate_qa.py --enrich-excel ./data/包月费问题.xlsx     # 反查 GB
 ```
 app.py                  # 合并后的单入口：每日调度 / 批量补跑 / 单日
 generate_qa.py          # QA 生成（GBase 查询、sql_query 逻辑、聚类、写库、Excel 全在本文件）
-config.py               # 集中配置，支持环境变量覆盖
+.env                    # 本地运行配置，密码 / API Key 已按实际环境照实填写
+config.py               # 集中配置，启动时加载 .env，也支持环境变量覆盖
 utils.py                # loguru 日志
 llm_client.py           # OpenAI 兼容 chat/completions 直连客户端（限流/重试/流式/清洗）
 prompt_loader.py        # 本地提示词加载与占位符注入
@@ -76,7 +77,7 @@ requirements.txt
 
 ## 五、配置与环境变量
 
-`config.py` 保留原默认值，全部可用同名环境变量覆盖（建议生产环境外置密钥）：
+`config.py` 保留原默认值，项目根目录的 `.env` 已按实际环境填好并会由 `config.py` 自动加载；全部配置也可用同名环境变量覆盖：
 
 | 变量 | 默认值 | 用途 |
 | --- | --- | --- |
@@ -118,7 +119,7 @@ requirements.txt
 现在可直接构建运行：
 
 ```bash
-cp .env.example .env && vi .env          # 四项 CHANGE_ME 必须改成真实值
+# .env 已随项目提供且填好真实值，无需再生成；只确认 DB_PORT 是否符合你的库
 docker build -t xiaoxin:v1 .
 docker run -dit --name xiaoxin_qa \
   --env-file .env \
@@ -139,9 +140,16 @@ docker compose run --rm xiaoxin python verify_env.py
 
 ### 8.2 配置外置
 
-`config.py` 会在启动时可选加载项目根目录的 `.env`（自实现，未引入 python-dotenv 依赖）。优先级：**显式 `export` 的环境变量 > `.env` > `config.py` 内置默认值**。`.env` 已被 `.gitignore` 排除，仓库只提交 `.env.example` 模板。
+`config.py` 会在启动时加载项目根目录的 `.env`（自实现，未引入 python-dotenv 依赖）。优先级：**显式 `export` 的环境变量 > `.env` > `config.py` 内置默认值**。
 
-> ⚠️ 密钥安全：原公开仓库里 `dify.py` 的 Dify API Key、`model.py` / `app.py` 的数据库密码都是明文硬编码。重构版虽保留默认值以兼容开箱运行，但**这些凭据应视为已泄露并全部轮换**，生产环境一律通过 `.env` / 环境变量注入，不要再依赖代码里的默认值。
+`.env` 已按个人局域网的实际环境把数据库密码、GBase 密码、模型 API Key **照实填好**，随项目一起交付；`.gitignore` / `.dockerignore` 都不再排除它，构建镜像时会被 `COPY . .` 带进去，`docker-compose.yml` 另用 `env_file: .env` 注入，两条通道取值一致，开箱即跑。
+
+值全部由原仓库源码逐项导出，未做任何改写：`app.py` / `app_batch.py` / `generate_qa.py` 的 `DB_CONFIG`、`gbase_excel_query.py` 的 `GBASE_CONFIG`、`model.py` 生效的 `URL` / `API_KEY` / `MODEL`、以及取数 `API_URL`。Dify 的 `app-xxx` key 已随去 Dify 一起作废，没有写入 `.env`。
+
+两处历史不一致留在 `.env` 注释里备查，不影响运行：
+
+- 原 `app.py` 的 DB 端口是 `8086`，其余文件是 `6306`；合并成单入口后只能取一个，这里按多数文件取 `6306`。若每日任务实际连的是 8086，改 `.env` 里的 `DB_PORT` 即可。
+- 已删除的 `sql_query.py` 里密码写作 `Nntslgkpt*2024`，与其余文件的 `Nttslgkpt*2024` 差一个字母；重构后「按 id 反查」统一走 `QA_DB_*`，以此为准。
 
 ### 8.3 上线自检（补上「未连真实环境」这一环）
 
@@ -168,10 +176,10 @@ python tests/check_prompts.py         # 提示词 / 映射表基线比对（零�
 ## 十、本轮续做新增文件
 
 ```
-.env.example               全量环境变量模板（敏感项 CHANGE_ME）
-.gitignore                 .env / logs / data / 缓存
+.env                       本地运行配置，密码 / API Key 按实际环境照实填写
+.gitignore                 logs / data / 缓存（.env 按约定随项目交付，不忽略）
 Dockerfile                 python:3.11-slim + requirements，CMD 跑 app.py
-.dockerignore
+.dockerignore              排除 logs/data/缓存，不排除 .env
 docker-compose.yml         常驻定时服务 + run --rm 临时任务用法
 verify_env.py              只读五连自检
 tests/smoke_test.py        离线端到端回归（非流式 / 流式）
@@ -181,3 +189,5 @@ config.py                  增加 .env 加载（优先级：export > .env > 默�
 ```
 
 核心业务代码（`app.py` / `generate_qa.py` / `issue_workflow.py` / `llm_client.py` / `prompts/`）本轮**未改动逻辑**，仅补齐部署、自检、测试与配置外置；`小信智能体摘要提取.yml` 保留为历史对照，运行时不读取。
+
+后续按「个人局域网、不担心安全」的口径又调整了一次配置落地方式：删掉原先的占位模板，改为直接提供 `.env` 并把密码 / API Key 照实填好；同时把它从 `.gitignore` / `.dockerignore` 放行，保证文件随项目交付、也能被构建进镜像。业务代码一行未动。
