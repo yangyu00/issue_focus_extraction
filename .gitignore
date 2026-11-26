@@ -14,4 +14,4 @@ __pycache__/
 .idea/
 .vscode/
 
-docker_image/*
+docker_image/
