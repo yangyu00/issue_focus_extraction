@@ -27,7 +27,7 @@ python tests/test_daily_retry.py                               # 就绪探测 / 
 python tests/check_prompts.py                                  # 提示词/映射基线
 ```
 
-命令行入口统一收敛在 `xiaoxin_work_order/cli/`，参数解析与调度逻辑只保留一份；Dockerfile 的 `CMD` 也直接指向 `xiaoxin_work_order.cli.app`。容器启动统一走根目录的 [`run.sh`](run.sh)（纯 `docker run`，不使用 docker compose）：**整个项目挂载到 `/app`，宿主机改 `.env` / 代码后 `docker restart` 即生效**（改 `requirements.txt` 才需重新 build）；**容器以宿主机当前 uid/gid 非 root 运行**，写出的日志/Excel 属主就是你本人。用法见 [`run使用说明.txt`](run使用说明.txt)。
+命令行入口统一收敛在 `xiaoxin_work_order/cli/`，日期校验等公共逻辑抽到 `cli/validators.py`，日志只在各入口 `main()` 初始化一次；Dockerfile 的 `CMD` 也直接指向 `xiaoxin_work_order.cli.app`。容器启动统一走根目录的 [`run.sh`](run.sh)（纯 `docker run`，不使用 docker compose）：**整个项目挂载到 `/app`，宿主机改 `.env` / 代码后 `docker restart` 即生效**（改 `requirements.txt` 才需重新 build）；**容器以宿主机当前 uid/gid 非 root 运行**，写出的日志/Excel 属主就是你本人。用法见 [`how_to_run.txt`](how_to_run.txt)。
 
 ---
 
@@ -36,7 +36,7 @@ python tests/check_prompts.py                                  # 提示词/映�
 ```
 issue_focus_extraction/
 ├── run.sh                     # docker run 启动脚本（整目录挂 /app，常驻服务 / 一次性任务）
-├── run使用说明.txt          # run.sh 的使用方法（含 restart 生效流程）
+├── how_to_run.txt             # run.sh 的使用方法（含 restart 生效流程）
 ├── README.md                  # 本文件：项目级说明
 ├── .env / .env.example        # 本地配置 / 脱敏配置模板
 ├── .gitignore / .dockerignore
@@ -47,17 +47,19 @@ issue_focus_extraction/
 │   ├── symptom_detail.txt  cause.txt  branch_actions.txt
 │   ├── vendor_actions.txt  qa_cluster.txt
 ├── tests/
+│   ├── _bootstrap.py          # 三个测试脚本共用的 sys.path 引导（零依赖）
 │   ├── source_snapshot.json   # 提示词/映射基线
-│   ├── check_prompts.py       # 基线比对（零依赖）
+│   ├── check_prompts.py       # 基线比对 + FIELDS 清单校验（零依赖）
 │   ├── smoke_test.py          # 伪造模型服务的离线回归
 │   └── test_daily_retry.py    # 就绪探测 / 当日重试状态机（全注入，离线）
 ├── logs/  data/               # 运行产物（已 ignore）
 └── xiaoxin_work_order/                   # 业务包
     ├── __init__.py
+    ├── fields.py              # ★ 8 字段 / 提示词名 / 并发划分的唯一常量定义
     ├── config.py              # 集中配置（PROJECT_PATH 指向仓库根）
-    ├── logging_setup.py       # loguru 日志
-    ├── common.py              # 跨层纯函数（to_text / is_valid_content / dedup_device_value）
-    ├── scheduling.py          # 就绪探测指纹 + 当日重试状态机（纯逻辑）
+    ├── logging_setup.py       # loguru 日志（只在 CLI 入口 setup_logging 一次）
+    ├── common.py              # 跨层纯函数（空值判据 / strip_think / issue ids / to_text）
+    ├── scheduling.py          # 就绪探测指纹 + 当日重试状态机（EventKind / 纯逻辑）
     ├── api/
     │   └── backend.py         # 后端取数接口（HTTP，只读）
     ├── llm/
@@ -69,7 +71,7 @@ issue_focus_extraction/
     ├── db/                    # ★ 数据库读写统一层
     │   ├── README.md          # ★ 模块级说明：作用 + 读写内容示例
     │   ├── connections.py     # 连接/引擎工厂（唯一建连接的地方）
-    │   ├── app_records.py     # app 库 4 张表的分流写入
+    │   ├── app_records.py     # app 库 4 张表的分流写入（声明式列映射）
     │   ├── qa_knowledge.py    # QA 库：读非厂商工单 / 按 id 反查 / 写标准问答
     │   └── gbase.py           # GBase opera.xiaoxin 明细（只读）
     ├── pipelines/
@@ -78,7 +80,9 @@ issue_focus_extraction/
     └── cli/
         ├── app.py             # 参数解析 + 每日调度主循环（python -m xiaoxin_work_order.cli.app）
         ├── generate_qa.py     # QA 生成参数解析（python -m xiaoxin_work_order.cli.generate_qa）
-        └── verify_env.py      # 上线前只读连通性自检（python -m xiaoxin_work_order.cli.verify_env）
+        ├── verify_env.py      # 上线前只读连通性自检（python -m xiaoxin_work_order.cli.verify_env）
+        ├── validators.py      # 日期校验（两个入口共用）
+        └── qa_excel.py        # --enrich-excel 手动反查命令
 ```
 
 ---
@@ -95,11 +99,11 @@ issue_focus_extraction/
 | **数据** | **`xiaoxin_work_order/db/`** | **全部 SQL、连接、表名、字段拼装** | **不做业务过滤、不调模型、不建表** |
 | 基础 | `config.py` / `logging_setup.py` / `common.py` | 配置、日志、纯函数 | — |
 
-依赖方向单一：`cli → {pipelines, scheduling} → {api, extraction, llm, db} → config`；`scheduling.py` 只接收注入的 `fetch` / `run` 回调，不反向依赖任何业务模块，因此可离线单测。不会反向引用。
+依赖方向单一：`cli → {pipelines, scheduling} → {api, extraction, llm, db, fields} → {config, common}`；`scheduling.py` 只接收注入的 `fetch` / `on_stable` 回调，`on_stable` 在判定稳定的那次轮询里同步执行（见下），状态机本身不反向依赖任何业务模块，因此可离线单测。不会反向引用。
 
 ---
 
-## 五、数据库模块（`xiaoxin_work_order/db/`）
+## 四、数据库模块（`xiaoxin_work_order/db/`）
 
 业务代码统一从 `xiaoxin_work_order.db` 导入：
 
@@ -124,18 +128,18 @@ from xiaoxin_work_order.db import (
 
 ---
 
-## 六、运行与数据契约
+## 五、运行与数据契约
 
 - CLI 参数与默认值、`schedule` 每日 `01:00` **登记**批次（启动时也可登记一次）、就绪探测与当日重试状态机（见下）；
-- `Dockerfile` 的 `CMD` 与 `USER 1000:1000`、`run.sh` 的 `docker run` 参数（**整目录挂载 `-v <项目根>:/app`** / `--user <宿主机uid>:<gid>` / `--restart unless-stopped`；刻意不用 `--env-file`，见「九、部署与自检」）；启动前自检 `logs` / `data` 可写且无旧 root 属主文件；
+- `Dockerfile` 的 `CMD` 与 `USER 1000:1000`、`run.sh` 的 `docker run` 参数（**整目录挂载 `-v <项目根>:/app`** / `--user <宿主机uid>:<gid>` / `--restart unless-stopped`；刻意不用 `--env-file`，见「八、部署与自检」）；启动前自检 `logs` / `data` 可写且无旧 root 属主文件；
 - 环境变量优先级：显式 `export` > `.env` > `config.py` 内置默认值；`config.py` 每次进程启动读 `/app/.env`，因此改配置后 `docker restart` 即生效；日志文件名与轮转；
-- 日志契约：`logs/INFO` / `logs/ERROR` 下按天 `00:00` 轮转、保留 180 天、`compression=None`；文件名前缀 `xiaoxin_work_order-info` / `xiaoxin_work_order-error` / `generate_qa_knowledge-info` / `generate_qa_knowledge-error`（见 `xiaoxin_work_order/config.py` / `xiaoxin_work_order/logging_setup.py`）。
+- 日志契约：`logs/INFO` / `logs/ERROR` 下按天 `00:00` 轮转、保留 180 天、`compression=None`；文件名前缀 `xiaoxin_work_order-info` / `xiaoxin_work_order-error` / `generate_qa_knowledge-info` / `generate_qa_knowledge-error`（见 `xiaoxin_work_order/config.py` / `xiaoxin_work_order/logging_setup.py`）。`setup_logging()` 只在各 CLI 入口的 `main()` 调用一次，同时挂一个 stderr sink；业务事件统一走 `logger`（文件 + 屏幕），不再 `print` 与 `logger` 双发，`print` 只留给交互式横幅与自检报告；日志目录也在此时创建，import 不产生副作用。
 - 后端接口字段（`taskOid / lastTime / taskTitle / fldFaultcontent / fldColumn2 / fldColumn4`）、`code==200 && success` 校验；
 - 8 字段输出顺序与清洗规则、映射链、`/no_think` 后缀、25 条 `MAPPING` 与 9 段提示词；
 - 4 张表的表名/列名、`key_issues` 与 `key_word` 均取 `symptom`、按 `fldColumn4` 分流、写前按 `task_oid` 删旧；
-- QA 过滤规则（保留 `symptom_detail != "其他"`、剔除 `branch_actions` 等于 `[{"operation":"无","result":"无","suggestion":"无"}]` 的记录）、`CHUNK_SIZE=400`、按 `symptom` 分组、Excel 文件名格式；
+- QA 过滤规则（保留 `symptom_detail != "其他"`、剔除 `branch_actions` 等于具名常量 `EMPTY_BRANCH_ACTIONS` 的记录，即模型「全无」输出）、`CHUNK_SIZE=400`、按 `symptom` 分组、Excel 文件名格式；
 - QA 表列顺序 `question, answer, knowledge_source, work_id, name, city, city_text, task_oids` 与固定值；
-- `--enrich-excel <XLSX>` 输入契约（属外部依赖）：输入 Excel 必须含 `matched_issue_ids` 列；获取渠道占位：由 `--qa-excel` 导出的 `data/qa_<起>_<止>.xlsx` 提供，责任人占位：QA 结果提供方；文件不存在或缺该列时记 ERROR 日志并终止，输出 `<输入名>_gbase_result.xlsx`。
+- `--enrich-excel <XLSX>` 输入契约（辅助命令已拆到 `cli/qa_excel.py`，属外部依赖）：输入 Excel 必须含 `matched_issue_ids` 列；获取渠道占位：由 `--qa-excel` 导出的 `data/qa_<起>_<止>.xlsx` 提供，责任人占位：QA 结果提供方；文件不存在或缺该列时记 ERROR 日志并终止，输出 `<输入名>_gbase_result.xlsx`。
 - 并发与节奏参数（`MAX_WORKERS` / `FIELD_WORKERS` / `LLM_QPS` / `*_SLEEP`）、就绪探测参数（`RETRY_*` / `STABILITY_RECHECK_MINUTES` / `SCHEDULER_POLL_SECONDS`）。
 
 ### 每日调度：就绪探测与当日重试
@@ -152,16 +156,16 @@ from xiaoxin_work_order.db import (
 
 - **指纹** = 行数 + `taskOid` 集合 + 最大 `lastTime`；只比行数会漏掉「删一条补一条、总数不变」。
 - 探测只调后端取数接口，不跑模型、不写库；稳定后把当次 df 直接传给 `run_process_for_date(date, df=...)`，不再二次取数，避免两份快照不一致。
-- 所有等待都表达为 `next_at`，由主循环每 `SCHEDULER_POLL_SECONDS`（默认 60s）轮询推进，**不 sleep 阻塞调度器**；`01:00` 的触发点只做登记，主循环始终空闲可响应次日调度。
+- 所有等待都表达为 `next_at`，由主循环每 `SCHEDULER_POLL_SECONDS`（默认 60s）轮询推进，等待期间**不 sleep 阻塞调度器**；`01:00` 的触发点只做登记。**判定稳定后，`DailyRetryQueue.tick()` 会在本次轮询里同步调用 `on_stable`（跑模型 + 入库，可能耗时数分钟），期间主循环会阻塞**；这是显式的回调副作用（见 `scheduling.py` 模块 docstring），不会 sleep 等下一次探测，也不影响次日 01:00 的登记。
 - **三条硬边界**：跨运行日、到达 `RETRY_WINDOW_END`（默认 `23:00`）、达到 `MAX_RETRY_ATTEMPTS`（默认 24），任一满足即丢弃并记 WARN，**绝不带到转天**。放弃的日期需手动 `--mode batch --start <日期> --end <日期>` 补跑。
 - 同一日期重复登记幂等；当天已成功入库的日期不会重跑模型（顺带避免启动那次与 01:00 那次重复消耗）。
 - `--mode daily` / `date` / `batch` 保持原有「立即取数入库」行为，不走状态机，便于手动补数据。
 
-连接按需懒加载并缓存，import 时不建引擎；`DELETE` 使用 SQLAlchemy `expanding` 参数绑定 + 表名白名单。
+连接按需懒加载并缓存，import 时不建引擎、也不建日志目录；`DELETE` 使用 SQLAlchemy `expanding` 参数绑定 + 表名白名单。`save_issue_results()` 返回的写入行数里 `-1` 表示该表写入异常，pipeline 会据此记 WARNING，不再无条件打印「完成」。
 
 ---
 
-## 七、配置与环境变量
+## 六、配置与环境变量
 
 `xiaoxin_work_order/config.py` 每次进程启动加载项目根的 `.env`，也支持同名环境变量覆盖；`.env.example` 是脱敏模板。真实地址与凭据不写入本文档。容器基线为 `python:3.11-slim`、容器内时区 `Asia/Shanghai`（见 `Dockerfile`）；依赖及版本见 `requirements.txt`。
 
@@ -186,13 +190,13 @@ from xiaoxin_work_order.db import (
 
 ---
 
-## 八、工作流与数据契约（摘要）
+## 七、工作流与数据契约（摘要）
 
-**8 字段提取**：6 个独立字段并发（`device / business / cause / branch_actions / vendor_actions / symptom_detail`），业务 → `MAPPING` → 二级分类 → `MAPPING` → 故障现象串行；结果经 `clean_field()` 去 `<think>`/空格后按固定顺序组装 JSON。输出字段：
+**8 字段提取**（字段清单、提示词文件名与并发/串行划分的唯一来源是 `xiaoxin_work_order/fields.py` 的 `FIELDS`，下面不再重复维护）：6 个独立字段并发（`device / business / cause / branch_actions / vendor_actions / symptom_detail`），业务 → `MAPPING` → 二级分类 → `MAPPING` → 故障现象串行；结果经 `clean_field()` 去 `<think>`/空格后按固定顺序组装 JSON。输出字段：
 
-`device` 设备、`business` 业务、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作、`vendor_actions` 厂商操作；另加 `create_time` 入库时间、`response_time` 模型耗时(ms)、`error_msg` 失败原因。
+`device` 设备、`business` 业务、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作、`vendor_actions` 厂商操作；另加 `create_time` 入库时间、`response_time` 模型耗时(ms)、`error_msg` 失败原因（完整定义见 `fields.py`）。
 
-**入库分流**：`fldColumn4`（厂商处理意见）有效 → `xxa_issues_records` + `xxa_complaint_word_cloud` + `xxa_bomc_qa_records`；无效 → `xxa_bomc_qa_non_vendor`（`vendor_actions` 置空）。写前按 `task_oid` 删旧。
+**入库分流**：`fldColumn4`（厂商处理意见）有效 → `xxa_issues_records` + `xxa_complaint_word_cloud` + `xxa_bomc_qa_records`；无效 → `xxa_bomc_qa_non_vendor`（`vendor_actions` 置空）。写前按 `task_oid` 删旧。「有效」与 `to_text()` 共用 `common.BLANK_MARKERS`（空值 / `nan` /「无」/「无无」），模型输入归一与入库分流不再各判一套。
 
 后端接口返回空结果时该日期批次直接跳过、不写库；响应缺少 `taskOid` / `fldColumn4` 时记 ERROR 日志并跳过，不写库（见 `xiaoxin_work_order/pipelines/issue_pipeline.py`）。
 
@@ -200,7 +204,7 @@ from xiaoxin_work_order.db import (
 
 ---
 
-## 九、部署与自检
+## 八、部署与自检
 
 镜像构建一次即可，之后只通过 `docker run` 启动：
 
@@ -211,7 +215,7 @@ cp .env.example .env          # 首次：按实际环境填写（已有 .env 可
 docker logs -f xiaoxin_work_order_qa     # 查看日志
 ```
 
-[`run.sh`](run.sh) 把 `docker run` 的整目录挂载、容器名与重启策略固化下来；不带参数启动常驻服务，带参数时用一次性容器执行指定命令（用完即删）。完整用法见 [`run使用说明.txt`](run使用说明.txt)，常见的一次性任务：
+[`run.sh`](run.sh) 把 `docker run` 的整目录挂载、容器名与重启策略固化下来；不带参数启动常驻服务，带参数时用一次性容器执行指定命令（用完即删）。完整用法见 [`how_to_run.txt`](how_to_run.txt)，常见的一次性任务：
 
 [`run.sh`](run.sh) 固化取值：镜像 `xiaoxin_work_order:v1`（`IMAGE` 覆盖）、常驻容器名 `xiaoxin_work_order_qa`（`NAME` 覆盖）、`-v <项目根>:/app`、`--user "$(id -u):$(id -g)"`（`RUN_UID` / `RUN_GID` 可覆盖）、`-e HOME=/tmp`、`--restart unless-stopped`；不带参数常驻，带参数以 `--rm` 一次性执行（同样挂载整个项目、同样非 root）；缺 `.env`、镜像不存在、目录不可写或残留 root 属主文件时报错退出。
 
@@ -275,9 +279,9 @@ python tests/check_prompts.py                             # 输出「全部一�
 
 ---
 
-## 十、安全与维护提示
+## 九、安全与维护提示
 
 - `.env` 随项目交付且填有真实凭据；**生产环境建议把 `.env` 从版本库移除**（bind mount 仍需宿主机上有这份文件），`.env.example` 可作为脱敏模板。注意 `Dockerfile` 的 `COPY . .` 会把构建时的 `.env` 打进镜像层，运行时虽被 bind mount 覆盖、不会生效，但镜像层里仍可取到旧凭据；敏感环境可把 `.env` 加进 `.dockerignore` 后重新 build。若改用 `docker -e` / 密钥管理注入，则改值需重建容器，与「restart 即生效」二选一。
 - 容器以 `--user "$(id -u):$(id -g)"` 非 root 运行，`logs/` / `data/` 产物属主为宿主机当前用户，无需 `sudo` 即可改删；从旧 root 容器升级需先 `chown` 一次。非 root 也意味着容器内不能装包或改系统文件，改 `requirements.txt` 仍需重新 build 镜像。
-- `.idea/` 是编辑器元数据，已在 `.gitignore` / `.dockerignore` 中忽略，可随时删除，不影响运行。
+- `.idea/` 是编辑器元数据，已从仓库移除；`.gitignore` / `.dockerignore` 仍保留忽略规则，防止再次提交。
 - 改提示词 → 改 `prompts/*.txt` 并同步 `tests/source_snapshot.json`；改表结构/固定值 → 改 `xiaoxin_work_order/db/` 对应文件并同步 `xiaoxin_work_order/db/README.md` 的示例。

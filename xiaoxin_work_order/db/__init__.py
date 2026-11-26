@@ -27,16 +27,3 @@ from xiaoxin_work_order.db.qa_knowledge import (
     read_non_vendor,
     save_qa_knowledge,
 )
-
-__all__ = [
-    # app 入库
-    "APP_TABLES", "TABLE_ISSUES", "TABLE_WORD_CLOUD", "TABLE_QA_RECORDS",
-    "TABLE_NON_VENDOR", "clean_old_records", "save_issue_results",
-    # QA 读写
-    "NON_VENDOR_TABLE", "QA_TABLE", "read_non_vendor",
-    "get_records_by_ids", "save_qa_knowledge",
-    # GBase 明细
-    "query_gbase_by_task_oids",
-    # 连接工厂（一般只供 db 包内部 / 自检使用）
-    "app_engine", "qa_engine", "gbase_connection", "qa_connection",
-]

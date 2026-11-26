@@ -2,6 +2,7 @@
 import pandas as pd
 from sqlalchemy import text
 
+from xiaoxin_work_order.common import format_issue_ids
 from xiaoxin_work_order.db.connections import qa_connection, qa_engine
 from xiaoxin_work_order.logging_setup import logger
 
@@ -40,7 +41,8 @@ def save_qa_knowledge(qa_data: list) -> int:
     """把聚类生成的标准问答对批量写入 xxa_city_qa_knowledge，返回写入条数。
 
     qa_data 每项：{standard_question, standard_answer, matched_issue_ids}
-    固定列：knowledge_source / work_id / name / city / city_text 由本模块填充。
+    固定列：knowledge_source / work_id / name / city / city_text 由本模块填充；
+    matched_issue_ids 统一经 common.format_issue_ids() 变成逗号分隔字符串。
     """
     if not qa_data:
         return 0
@@ -67,12 +69,11 @@ def save_qa_knowledge(qa_data: list) -> int:
                 fixed_values["name"],
                 fixed_values["city"],
                 fixed_values["city_text"],
-                str(item.get("matched_issue_ids", ""))
-                .lstrip("[").rstrip("]").replace(" ", ""),
+                format_issue_ids(item.get("matched_issue_ids", "")),
             ) for item in qa_data]
             cursor.executemany(sql, data_to_insert)
         connection.commit()
-        print(f"成功插入 {len(data_to_insert)} 条数据到 {QA_TABLE} 表。")
+        logger.info(f"成功插入 {len(data_to_insert)} 条数据到 {QA_TABLE} 表。")
         return len(data_to_insert)
     except Exception as e:
         logger.error(f"数据库操作出错: {e}")

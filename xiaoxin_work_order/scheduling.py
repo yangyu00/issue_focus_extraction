@@ -8,12 +8,32 @@
 - 指纹 = 行数 + taskOid 集合 + 最大 lastTime，能识别「删一条补一条、总数不变」。
 - 所有等待都表达为 next_at，由主循环轮询推进，绝不 sleep 阻塞调度器。
 - 重试严格限制在「登记时的运行日」当天，跨天立即丢弃，不带到转天。
+
+关于副作用：``tick()`` 判定稳定后会在**本次 tick 内同步调用** ``on_stable``
+（跑模型 + 入库，可能耗时数分钟），期间主循环会阻塞，但不会 sleep 等待下一次
+探测，也不影响次日 01:00 的登记。若需要完全非阻塞，可把 ``on_stable`` 换成
+「投递到工作队列」的回调；状态机本身不关心回调里做什么。
 """
 from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Callable
+
+
+class EventKind(StrEnum):
+    """事件类型：调用方按枚举判断，不再裸写字符串常量。"""
+
+    REGISTERED = "registered"
+    DUPLICATE = "duplicate"
+    ALREADY_DONE = "already_done"
+    EMPTY = "empty"
+    INVALID = "invalid"
+    FIRST_LOAD = "first_load"
+    GROWING = "growing"
+    STABLE = "stable"
+    ABANDONED = "abandoned"
 
 
 @dataclass(frozen=True)
@@ -57,8 +77,7 @@ class RetryPolicy:
 
 @dataclass(frozen=True)
 class Event:
-    kind: str        # registered / duplicate / already_done / empty / invalid /
-                     # first_load / growing / stable / abandoned
+    kind: EventKind
     date_str: str
     message: str
     next_at: datetime.datetime | None = None
@@ -75,10 +94,10 @@ class _Task:
 
 
 class DailyRetryQueue:
-    """由主循环驱动；fetch / run 由外部注入，便于离线测试与复用。
+    """由主循环驱动；fetch / on_stable 由外部注入，便于离线测试与复用。
 
     fetch(date_str) -> DataFrame：只取数。
-    run(date_str, df)：用已确认稳定的 df 跑提取与入库。
+    on_stable(date_str, df)：连续两次指纹一致时在本次 tick 内同步调用（见模块 docstring）。
     """
 
     def __init__(self, policy: RetryPolicy):
@@ -93,17 +112,17 @@ class DailyRetryQueue:
     def register(self, date_str: str, now: datetime.datetime) -> list[Event]:
         """登记一个待处理日期；同一日期重复登记幂等，当天已入库不再重跑。"""
         if date_str in self._pending:
-            return [Event("duplicate", date_str, "该日期已在重试队列中，跳过重复登记")]
+            return [Event(EventKind.DUPLICATE, date_str, "该日期已在重试队列中，跳过重复登记")]
         if self._completed.get(date_str) == now.date():
-            return [Event("already_done", date_str, "该日期当天已成功入库，跳过，避免重复跑模型")]
+            return [Event(EventKind.ALREADY_DONE, date_str, "该日期当天已成功入库，跳过，避免重复跑模型")]
         self._pending[date_str] = _Task(date_str, now.date(), now)
-        return [Event("registered", date_str, f"登记当日待处理批次，运行日 {now.date()}")]
+        return [Event(EventKind.REGISTERED, date_str, f"登记当日待处理批次，运行日 {now.date()}")]
 
     def tick(
         self,
         now: datetime.datetime,
         fetch: Callable[[str], object],
-        run: Callable[[str, object], None],
+        on_stable: Callable[[str, object], None],
     ) -> list[Event]:
         """推进一次；返回本次产生的事件，供调用方打日志。"""
         for key in [k for k, day in self._completed.items() if day != now.date()]:
@@ -135,7 +154,7 @@ class DailyRetryQueue:
                 task.fast_recheck_used = False
                 task.next_at = now + datetime.timedelta(hours=self.policy.interval_hours)
                 events.append(Event(
-                    "empty", date_str,
+                    EventKind.EMPTY, date_str,
                     f"第 {n} 次探测：上游返回空，{self.policy.interval_hours}h 后重试",
                     task.next_at,
                 ))
@@ -144,17 +163,17 @@ class DailyRetryQueue:
                 task.fast_recheck_used = False
                 task.next_at = now + datetime.timedelta(hours=self.policy.interval_hours)
                 events.append(Event(
-                    "invalid", date_str,
+                    EventKind.INVALID, date_str,
                     f"第 {n} 次探测：返回缺少 taskOid 列，暂不入库，{self.policy.interval_hours}h 后重试",
                     task.next_at,
                 ))
             elif task.last_fp is not None and fp == task.last_fp:
                 # 连续两次指纹一致 → 数据不再增长，用「这次」的 df 入库，不再二次取数
-                run(date_str, df)
+                on_stable(date_str, df)
                 del self._pending[date_str]
                 self._completed[date_str] = now.date()
                 events.append(Event(
-                    "stable", date_str,
+                    EventKind.STABLE, date_str,
                     f"第 {n} 次探测：与上次指纹一致（{fp.count} 条），数据已稳定，开始入库",
                 ))
             else:
@@ -164,7 +183,7 @@ class DailyRetryQueue:
                     task.fast_recheck_used = True
                     task.next_at = now + datetime.timedelta(minutes=self.policy.recheck_minutes)
                     events.append(Event(
-                        "first_load", date_str,
+                        EventKind.FIRST_LOAD, date_str,
                         f"第 {n} 次探测：拿到 {fp.count} 条，{self.policy.recheck_minutes:g}min 后复核是否仍在增长",
                         task.next_at,
                     ))
@@ -172,7 +191,7 @@ class DailyRetryQueue:
                     task.next_at = now + datetime.timedelta(hours=self.policy.interval_hours)
                     detail = "记录数仍在增长" if grew else "指纹发生变化"
                     events.append(Event(
-                        "growing", date_str,
+                        EventKind.GROWING, date_str,
                         f"第 {n} 次探测：{detail}（当前 {fp.count} 条），数据未稳定，"
                         f"{self.policy.interval_hours:g}h 后再校验",
                         task.next_at,
@@ -182,7 +201,7 @@ class DailyRetryQueue:
     def _abandon(self, date_str: str, reason: str) -> Event:
         del self._pending[date_str]
         return Event(
-            "abandoned", date_str,
+            EventKind.ABANDONED, date_str,
             reason + "；该日期当天未就绪，如需补数据请手动 "
                      "--mode batch --start <日期> --end <日期>",
         )

@@ -3,6 +3,8 @@
 
 业务逻辑见 xiaoxin_work_order/pipelines/issue_pipeline.py。
 就绪探测与当日重试状态机见 xiaoxin_work_order/scheduling.py。
+
+日志只在这里初始化一次；流水线模块只导入 logger，不各自配置。
 """
 import argparse
 import datetime
@@ -10,7 +12,10 @@ import time
 
 import schedule
 
+from xiaoxin_work_order.cli.validators import valid_date
 from xiaoxin_work_order.config import (
+    ERROR_LOG_NAME,
+    INFO_LOG_NAME,
     MAX_RETRY_ATTEMPTS,
     RETRY_INTERVAL_HOURS,
     RETRY_WINDOW_END,
@@ -18,28 +23,20 @@ from xiaoxin_work_order.config import (
     SCHEDULER_POLL_SECONDS,
     STABILITY_RECHECK_MINUTES,
 )
-from xiaoxin_work_order.logging_setup import logger
+from xiaoxin_work_order.logging_setup import logger, setup_logging
 from xiaoxin_work_order.pipelines.issue_pipeline import (
     fetch_for_date,
     run_batch_job,
     run_daily_job,
     run_process_for_date,
 )
-from xiaoxin_work_order.scheduling import DailyRetryQueue, Event, RetryPolicy
-
-
-def _valid_date(value):
-    try:
-        datetime.datetime.strptime(value, "%Y-%m-%d")
-        return value
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"日期格式应为 YYYY-MM-DD: {value}")
+from xiaoxin_work_order.scheduling import DailyRetryQueue, Event, EventKind, RetryPolicy
 
 
 def _log_event(ev: Event):
+    """屏幕与文件都来自 logger 的 stderr / 文件 sink，不再 print 双发。"""
     line = f"[调度] {ev.date_str} {ev.kind}: {ev.message}"
-    print(line, flush=True)
-    if ev.kind in ("abandoned", "invalid"):
+    if ev.kind in (EventKind.ABANDONED, EventKind.INVALID):
         logger.warning(line)
     else:
         logger.info(line)
@@ -50,6 +47,8 @@ def _yesterday_str() -> str:
 
 
 def main():
+    setup_logging(INFO_LOG_NAME, ERROR_LOG_NAME)
+
     parser = argparse.ArgumentParser(
         prog="python -m xiaoxin_work_order.cli.app",
         description="工单解析入库（每日调度 / 批量补跑 / 单日）",
@@ -58,9 +57,9 @@ def main():
         "--mode", choices=["schedule", "daily", "date", "batch"], default="schedule",
         help="schedule=每日就绪探测+当日重试(默认)；daily=只跑昨天；date=跑指定单日；batch=跑日期区间",
     )
-    parser.add_argument("--date", type=_valid_date, help="--mode date 的日期 YYYY-MM-DD")
-    parser.add_argument("--start", type=_valid_date, help="--mode batch 的起始日期 YYYY-MM-DD")
-    parser.add_argument("--end", type=_valid_date, help="--mode batch 的结束日期 YYYY-MM-DD")
+    parser.add_argument("--date", type=valid_date, help="--mode date 的日期 YYYY-MM-DD")
+    parser.add_argument("--start", type=valid_date, help="--mode batch 的起始日期 YYYY-MM-DD")
+    parser.add_argument("--end", type=valid_date, help="--mode batch 的结束日期 YYYY-MM-DD")
     parser.add_argument("--at", default=SCHEDULE_TIME, help="schedule 模式的每日触发时间，默认 01:00")
     parser.add_argument(
         "--no-run-now", action="store_true",
@@ -116,7 +115,7 @@ def main():
     queue = DailyRetryQueue(policy)
 
     def register_yesterday():
-        """01:00 触发点只做登记，不在这里执行任务，主循环始终空闲可响应次日调度。"""
+        """01:00 触发点只做登记，不在这里执行任务。"""
         for ev in queue.register(_yesterday_str(), datetime.datetime.now()):
             _log_event(ev)
 
@@ -137,7 +136,7 @@ def main():
         try:
             schedule.run_pending()
             for ev in queue.tick(
-                datetime.datetime.now(), fetch=fetch_for_date, run=run_stable,
+                datetime.datetime.now(), fetch=fetch_for_date, on_stable=run_stable,
             ):
                 _log_event(ev)
             time.sleep(SCHEDULER_POLL_SECONDS)

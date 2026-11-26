@@ -5,6 +5,9 @@
 
 本文件位于 xiaoxin_work_order/ 包内，PROJECT_PATH 取上一级（仓库根），
 .env / prompts / logs / data 均落在仓库根。
+
+import 本模块只读取 .env、不建目录、不连库；日志目录统一由
+``logging_setup.setup_logging()`` 在 CLI 入口创建。
 """
 import os
 from urllib.parse import quote_plus
@@ -19,9 +22,6 @@ INFO_LOG_NAME = "xiaoxin_work_order-info"
 ERROR_LOG_NAME = "xiaoxin_work_order-error"
 GENERATE_QA_INFO_LOG_NAME = "generate_qa_knowledge-info"
 GENERATE_QA_ERROR_LOG_NAME = "generate_qa_knowledge-error"
-
-for _dir in (BASE_LOG_PATH, INFO_LOG_PATH, ERROR_LOG_PATH):
-    os.makedirs(_dir, exist_ok=True)
 
 
 def _load_dotenv():
@@ -89,12 +89,14 @@ QA_MYSQL_CONFIG = {
 }
 
 # ================= GBase（opera 库） =================
+# 三套数据源统一用 database 键（pymysql 的正式参数名），verify_env 不再需要
+# cfg.get("database") or cfg.get("db") 这种兜底。环境变量名仍是 GBASE_DB。
 GBASE_CONFIG = {
     "host": _s("GBASE_HOST", "134.85.16.139"),
     "port": _i("GBASE_PORT", 5258),
     "user": _s("GBASE_USER", "busiopera"),
     "password": _s("GBASE_PASSWORD", "Busiopera#2025"),
-    "db": _s("GBASE_DB", "opera"),
+    "database": _s("GBASE_DB", "opera"),
     "charset": "utf8",
 }
 

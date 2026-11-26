@@ -1,6 +1,7 @@
 """流水线一：取数 → 8 字段提取 → 分流入库。
 
 本文件只做编排与数据整形；所有数据库写入交给 xiaoxin_work_order.db.save_issue_results()。
+字段清单唯一来源见 xiaoxin_work_order/fields.py；日志由 CLI 入口统一配置。
 """
 import datetime
 import json
@@ -14,18 +15,11 @@ from tqdm.auto import tqdm
 
 from xiaoxin_work_order.api.backend import fetch_data_from_api
 from xiaoxin_work_order.common import dedup_device_value, is_valid_content, to_text
-from xiaoxin_work_order.config import (
-    BATCH_DAY_SLEEP,
-    ERROR_LOG_NAME,
-    INFO_LOG_NAME,
-    MAX_WORKERS,
-    POST_CALL_SLEEP,
-)
+from xiaoxin_work_order.config import BATCH_DAY_SLEEP, MAX_WORKERS, POST_CALL_SLEEP
 from xiaoxin_work_order.db import save_issue_results
 from xiaoxin_work_order.extraction.workflow import run_extraction
-from xiaoxin_work_order.logging_setup import logger, setup_logging
-
-setup_logging(INFO_LOG_NAME, ERROR_LOG_NAME)
+from xiaoxin_work_order.fields import FIELDS
+from xiaoxin_work_order.logging_setup import logger
 
 
 # ================= 解析 / 整形 =================
@@ -65,19 +59,17 @@ def build_labeled_input(row: pd.Series) -> str:
     return re.sub(r"\n{3,}", "\n\n", joined)
 
 
-def process_model_output_for_db(model_out: str) -> pd.Series:
-    """解析模型输出 JSON 为入库字段。"""
+def parse_model_output(model_out: str) -> pd.Series:
+    """解析模型输出 JSON 为 8 个入库字段（纯解析，不碰数据库）。
+
+    字段与顺序来自 fields.FIELDS；只有 device 与两类 actions 需要额外整形。
+    """
     data = _safe_json_loads(model_out)
-    return pd.Series({
-        "device": dedup_device_value(to_text(data.get("device", ""))),
-        "business": to_text(data.get("business", "")),
-        "subclass": to_text(data.get("subclass", "")),
-        "symptom": to_text(data.get("symptom", "")),
-        "symptom_detail": to_text(data.get("symptom_detail", "")),
-        "cause": to_text(data.get("cause", "")),
-        "branch_actions": _actions_to_str(data.get("branch_actions", "")),
-        "vendor_actions": _actions_to_str(data.get("vendor_actions", "")),
-    })
+    cleaned = {key: to_text(data.get(key, "")) for key in FIELDS}
+    cleaned["device"] = dedup_device_value(cleaned["device"])
+    for key in ("branch_actions", "vendor_actions"):
+        cleaned[key] = _actions_to_str(data.get(key, ""))
+    return pd.Series(cleaned)
 
 
 # ================= 模型调用 =================
@@ -92,7 +84,7 @@ def safe_run_model(text_: str) -> dict:
         raw_json, error_msg = run_extraction(text_)
         result["raw_json"] = raw_json or "{}"
         result["error_msg"] = error_msg
-        print(f"输入：{text_}, 输出：{raw_json}")
+        logger.info(f"模型输出: {raw_json}")
     except Exception as e:
         error_str = str(e)
         logger.error(f"模型调用抛出异常: {error_str} | 输入片段: {text_[:50]}...")
@@ -125,6 +117,31 @@ def parallel_process(texts: List[str]) -> List[dict]:
     return results
 
 
+# ================= 纯整形（可单独单测） =================
+def _build_final_df(df: pd.DataFrame, results_list: List[dict]) -> pd.DataFrame:
+    """把「接口原始数据 + 模型结果 + 元数据」拼成 save_issue_results 需要的 DataFrame。"""
+    meta_df = pd.DataFrame(results_list)
+    extracted_cols = meta_df["raw_json"].apply(parse_model_output)
+
+    df = df.reset_index(drop=True)
+    extracted_cols = extracted_cols.reset_index(drop=True)
+    mask_invalid = ~df["fldColumn4"].apply(is_valid_content)
+    extracted_cols.loc[mask_invalid, "vendor_actions"] = ""
+
+    final_df = pd.concat(
+        [
+            df["taskOid"].rename("task_oid"),
+            df["lastTime"].rename("last_time"),
+            df["fldColumn4"],
+            extracted_cols,
+            meta_df[["response_time", "error_msg"]],
+        ],
+        axis=1,
+    )
+    final_df["create_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return final_df
+
+
 # ================= 业务编排 =================
 def fetch_for_date(target_date_str: str) -> pd.DataFrame:
     """仅取数（轻量探测用），不跑模型、不写库。
@@ -149,7 +166,7 @@ def run_process_for_date(target_date_str: str, df=None):
         if df is None:
             df = fetch_for_date(target_date_str)
         if df.empty:
-            print(f"[{target_date_str}] 无数据需处理。")
+            logger.info(f"[{target_date_str}] 无数据需处理。")
             return
 
         required_columns = ["taskOid", "fldColumn4"]
@@ -158,41 +175,26 @@ def run_process_for_date(target_date_str: str, df=None):
             logger.error(f"错误：数据中缺失必要字段 {missing_cols}")
             return
 
-        print(f"[{target_date_str}] 构建模型输入并并发调用...")
+        logger.info(f"[{target_date_str}] 构建模型输入并并发调用...")
         model_inputs = df.apply(build_labeled_input, axis=1).tolist()
         total_calls = len(model_inputs)
 
         results_list = parallel_process(model_inputs)
-        print(f"[{target_date_str}] 解析模型结果...")
-
-        meta_df = pd.DataFrame(results_list)
-        extracted_cols = meta_df["raw_json"].apply(process_model_output_for_db)
-
-        df = df.reset_index(drop=True)
-        extracted_cols = extracted_cols.reset_index(drop=True)
-        mask_invalid = ~df["fldColumn4"].apply(is_valid_content)
-        extracted_cols.loc[mask_invalid, "vendor_actions"] = ""
-
-        final_df = pd.concat(
-            [
-                df["taskOid"].rename("task_oid"),
-                df["lastTime"].rename("last_time"),
-                df["fldColumn4"],
-                extracted_cols,
-                meta_df[["response_time", "error_msg"]],
-            ],
-            axis=1,
-        )
-        final_df["create_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logger.info(f"[{target_date_str}] 解析模型结果...")
+        final_df = _build_final_df(df, results_list)
 
         current_task_oids = final_df["task_oid"].unique().tolist()
         if not current_task_oids:
             return
 
-        # 数据库读写统一收口到 xiaoxin_work_order.db
-        save_issue_results(final_df)
-
-        print(f"✅ [{target_date_str}] 完成！调用量: {total_calls}")
+        # 数据库读写统一收口到 xiaoxin_work_order.db；接收返回值，别把「完成」当成必然
+        counts = save_issue_results(final_df)
+        logger.info(f"[{target_date_str}] 入库结果: {counts}")
+        failed_tables = [table for table, written in counts.items() if written < 0]
+        if failed_tables:
+            logger.warning(f"[{target_date_str}] 部分表写入失败: {failed_tables}，请查 ERROR 日志")
+        else:
+            logger.info(f"✅ [{target_date_str}] 完成！调用量: {total_calls}")
     except Exception as e:
         logger.error(f"[{target_date_str}] 执行异常: {e}", exc_info=True)
 
@@ -201,12 +203,12 @@ def run_daily_job():
     """默认跑昨天。"""
     yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
     date_str = yesterday.strftime("%Y-%m-%d")
-    print(f"执行默认每日任务，日期: {date_str}")
+    logger.info(f"执行默认每日任务，日期: {date_str}")
     run_process_for_date(date_str)
 
 
 def run_batch_job(start_date_str: str, end_date_str: str):
-    """按天批量补跑一段时间。"""
+    """按天批量补跑一段时间（横幅为交互式输出，业务事件仍走 logger）。"""
     print(f"=== 开始批量任务: {start_date_str} 至 {end_date_str} ===")
     start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
     end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d")

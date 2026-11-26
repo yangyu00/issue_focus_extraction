@@ -13,8 +13,8 @@ import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _bootstrap  # noqa: E402, F401 - 统一把仓库根加入 sys.path
 
 RECORDED = []
 
@@ -96,6 +96,7 @@ def main():
 
     import json_repair
     from xiaoxin_work_order.extraction import workflow as issue_workflow
+    from xiaoxin_work_order.fields import FIELDS
     from xiaoxin_work_order.pipelines import issue_pipeline as app
     from xiaoxin_work_order.pipelines import qa_pipeline as generate_qa
 
@@ -103,9 +104,7 @@ def main():
 
     raw, errors = issue_workflow.run_extraction(sample)
     data = json.loads(raw)
-    expected_keys = ["device", "business", "subclass", "symptom", "symptom_detail",
-                     "cause", "branch_actions", "vendor_actions"]
-    assert list(data.keys()) == expected_keys, data.keys()
+    assert list(data.keys()) == list(FIELDS), data.keys()
     assert not errors, errors
     assert data["device"] == "光猫光猫", data["device"]
     assert data["business"] == "宽带业务"

@@ -2,7 +2,8 @@
 """校验本地提示词与映射表是否仍与 tests/source_snapshot.json 基线逐字一致。
 
 基线在 tests/source_snapshot.json（零第三方依赖）。
-改过 prompts/ 或 xiaoxin_work_order/llm/mappings.py 后跑一次；任一不一致退出码为 1。
+提示词文件清单由 xiaoxin_work_order/fields.py 的 FIELDS 派生校验（8 字段 + qa_cluster），
+避免新增字段时漏同步基线。改过 prompts/ 或 mappings.py 后跑一次；任一不一致退出码为 1。
 
     python tests/check_prompts.py
 """
@@ -10,9 +11,10 @@ import json
 import os
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _bootstrap import ROOT  # noqa: E402
 
+from xiaoxin_work_order.fields import FIELDS  # noqa: E402
 from xiaoxin_work_order.llm.mappings import MAPPING  # noqa: E402
 
 SNAPSHOT = os.path.join(ROOT, "tests", "source_snapshot.json")
@@ -33,6 +35,15 @@ def main():
 
     problems = []
     expected_prompts = snapshot["prompts"]
+
+    # FIELDS 是字段/提示词文件名的唯一事实源：8 个字段 + qa_cluster
+    expected_names = set(FIELDS) | {"qa_cluster"}
+    if expected_names != set(expected_prompts):
+        problems.append(
+            f"提示词基线清单与 FIELDS 不一致"
+            f"（缺少 {sorted(expected_names - set(expected_prompts))}，"
+            f"多出 {sorted(set(expected_prompts) - expected_names)}）"
+        )
 
     for name, expected in expected_prompts.items():
         path = os.path.join(PROMPTS_DIR, name + ".txt")

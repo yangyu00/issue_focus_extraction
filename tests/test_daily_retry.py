@@ -12,8 +12,8 @@ import unittest
 
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _bootstrap  # noqa: E402, F401 - 统一把仓库根加入 sys.path
 
 from xiaoxin_work_order.scheduling import (  # noqa: E402
     DailyRetryQueue,
@@ -57,7 +57,7 @@ class Recorder:
 
 
 def kinds(events):
-    return [e.kind for e in events]
+    return [str(e.kind) for e in events]
 
 
 class TestDailyRetry(unittest.TestCase):

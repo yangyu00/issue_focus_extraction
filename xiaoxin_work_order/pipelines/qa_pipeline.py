@@ -5,109 +5,41 @@
 并导出 GBase 明细 / QA Excel。
 
 所有数据库读写来自 xiaoxin_work_order.db；聚类提示词由 prompts/qa_cluster.txt 维护。
+``--enrich-excel`` 的手动反查命令已拆到 xiaoxin_work_order/cli/qa_excel.py。
+日志由 CLI 入口统一配置。
 """
-import ast
 import json
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 
 import json_repair
 import pandas as pd
 
-from xiaoxin_work_order.config import (
-    DATA_DIR,
-    GENERATE_QA_ERROR_LOG_NAME,
-    GENERATE_QA_INFO_LOG_NAME,
-    QA_LLM_MODEL,
-)
+from xiaoxin_work_order.common import format_issue_ids
+from xiaoxin_work_order.config import DATA_DIR, QA_LLM_MODEL
 from xiaoxin_work_order.db import (
     NON_VENDOR_TABLE,
-    get_records_by_ids,
     query_gbase_by_task_oids,
     read_non_vendor,
     save_qa_knowledge,
 )
 from xiaoxin_work_order.llm.client import chat, extract_json_block
 from xiaoxin_work_order.llm.prompt_loader import load_prompt
-from xiaoxin_work_order.logging_setup import logger, setup_logging
-
-setup_logging(GENERATE_QA_INFO_LOG_NAME, GENERATE_QA_ERROR_LOG_NAME)
+from xiaoxin_work_order.logging_setup import logger
 
 CHUNK_SIZE = 400  # 单个 symptom 每批送模型的记录数
 
-
-# ================= 辅助命令：Excel 反查 =================
-def parse_matched_issue_ids(value) -> list:
-    """解析 matched_issue_ids：支持 list 字面量字符串、逗号分隔字符串、已是 list。"""
-    if isinstance(value, list):
-        return [str(v).strip() for v in value if str(v).strip()]
-    if not isinstance(value, str) or not value.strip():
-        return []
-    value = value.strip()
-    try:
-        parsed = ast.literal_eval(value)
-        if isinstance(parsed, list):
-            return [str(v).strip() for v in parsed if str(v).strip()]
-    except (ValueError, SyntaxError):
-        pass
-    return [v.strip() for v in value.split(",") if v.strip()]
+# 模型在「分公司没有任何操作」时固定输出的 JSON 字面量（见 prompts/branch_actions.txt）。
+# 提为具名常量，避免过滤条件里散落一整串与模型格式逐字绑定的字符串。
+EMPTY_BRANCH_ACTIONS = '[{"operation":"无","result":"无","suggestion":"无"}]'
 
 
-def enrich_qa_excel(input_xlsx: str):
-    """读 QA Excel 的 matched_issue_ids → 反查 task_oid → 查 GBase → 另存明细 Excel。
+@dataclass
+class GroupResult:
+    """单个 symptom 组的产出：聚类结果 + 该组查到的 GBase 明细。"""
 
-    由 --enrich-excel 调用的手动辅助命令。
-    """
-    if not os.path.exists(input_xlsx):
-        logger.error(f"文件不存在: {input_xlsx}")
-        return
-    df_input = pd.read_excel(input_xlsx)
-    if "matched_issue_ids" not in df_input.columns:
-        logger.error(f"文件中缺少 matched_issue_ids 列，现有列：{df_input.columns.tolist()}")
-        return
-
-    all_ids = set()
-    for val in df_input["matched_issue_ids"]:
-        all_ids.update(parse_matched_issue_ids(val))
-    id_list = [int(i) for i in all_ids if str(i).strip().isdigit()]
-    logger.info(f"共解析出 {len(id_list)} 个唯一 id，查询 {NON_VENDOR_TABLE} 获取 task_oid...")
-
-    non_vendor_df = get_records_by_ids(id_list)
-    if non_vendor_df.empty or "task_oid" not in non_vendor_df.columns:
-        logger.error("未查到对应记录或缺少 task_oid 列，终止。")
-        return
-
-    id_to_task_oid = {
-        str(row["id"]): str(row["task_oid"])
-        for _, row in non_vendor_df.iterrows()
-        if pd.notna(row.get("task_oid")) and pd.notna(row.get("id"))
-    }
-    all_task_oids = list(set(id_to_task_oid.values()))
-    gbase_records = query_gbase_by_task_oids(all_task_oids)
-    gbase_map = {str(r.get("TASK_OID", "")): r for r in gbase_records}
-
-    output_rows = []
-    for _, row in df_input.iterrows():
-        for id_val in parse_matched_issue_ids(row.get("matched_issue_ids", "")):
-            task_oid = id_to_task_oid.get(str(id_val), "")
-            info = gbase_map.get(str(task_oid), {}) if task_oid else {}
-            output_rows.append({
-                "task_oid": task_oid,
-                "报障标题": info.get("TASK_TITLE", ""),
-                "报障内容": info.get("fld_faultcontent", ""),
-                "分公司处理意见": info.get("fld_column_2", ""),
-            })
-    if not output_rows:
-        logger.warning("未生成任何输出行，请检查 matched_issue_ids 列内容。")
-        return
-
-    base, ext = os.path.splitext(input_xlsx)
-    output_dir = os.path.dirname(input_xlsx) or "."
-    os.makedirs(output_dir, exist_ok=True)
-    output_xlsx = os.path.join(output_dir, f"{os.path.basename(base)}_gbase_result{ext}")
-    pd.DataFrame(output_rows).to_excel(output_xlsx, index=False)
-    logger.info(f"✅ 完成！共输出 {len(output_rows)} 行，已保存到：{output_xlsx}")
-    print(f"✅ 完成！共输出 {len(output_rows)} 行，已保存到：{output_xlsx}")
+    qa_items: list
+    gbase_rows: list
 
 
 # ================= 数据清洗与模型调用 =================
@@ -136,10 +68,14 @@ def call_qa_model(model_input_str: str) -> str:
     return extract_json_block(raw)
 
 
-def process_group(symptom, group, gbase_result_collector: dict) -> list:
-    """处理单个 symptom 组：查 GBase + 分批调用模型聚类。"""
+def process_group(symptom, group) -> GroupResult:
+    """处理单个 symptom 组：查 GBase + 分批调用模型聚类。
+
+    结果一次性返回，不再通过参数里的「collector」顺带往外写状态。
+    """
     qa_list = []
     total_records = len(group)
+    gbase_rows = []
 
     # 查询 GBase 明细
     try:
@@ -152,11 +88,9 @@ def process_group(symptom, group, gbase_result_collector: dict) -> list:
             "报障内容": r.get("fld_faultcontent", ""),
             "分公司处理意见": r.get("fld_column_2", ""),
         } for r in gbase_records]
-        gbase_result_collector[symptom] = gbase_rows
         logger.info(f"symptom='{symptom}'：GBase 返回 {len(gbase_rows)} 条记录")
     except Exception as e:
         logger.error(f"symptom='{symptom}' GBase 查询失败: {e}", exc_info=True)
-        gbase_result_collector[symptom] = []
 
     # 分批聚类
     try:
@@ -181,7 +115,7 @@ def process_group(symptom, group, gbase_result_collector: dict) -> list:
                         "symptom": symptom,
                         "standard_question": cluster.get("standard_question", ""),
                         "standard_answer": cluster.get("standard_answer", ""),
-                        "matched_issue_ids": str(cluster.get("matched_issue_ids", [])),
+                        "matched_issue_ids": format_issue_ids(cluster.get("matched_issue_ids", [])),
                     })
             except Exception as e:
                 logger.error(
@@ -191,7 +125,7 @@ def process_group(symptom, group, gbase_result_collector: dict) -> list:
     except Exception as e:
         logger.error(f"处理 symptom='{symptom}' 时发生错误: {e}", exc_info=True)
 
-    return qa_list
+    return GroupResult(qa_items=qa_list, gbase_rows=gbase_rows)
 
 
 def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool = False):
@@ -208,10 +142,11 @@ def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool 
 
         df_filtered = df[df["symptom_detail"] != "其他"].copy()
         logger.info(f"过滤 symptom_detail='其他' 后剩余: {len(df_filtered)}")
-        df_filtered = df_filtered[
-            df_filtered["branch_actions"] != '[{"operation":"无","result":"无","suggestion":"无"}]'
-        ].copy()
-        logger.info(f"过滤 branch_actions 特定值后剩余: {len(df_filtered)}，共过滤掉 {initial_count - len(df_filtered)} 条")
+        df_filtered = df_filtered[df_filtered["branch_actions"] != EMPTY_BRANCH_ACTIONS].copy()
+        logger.info(
+            f"过滤 branch_actions 全「无」记录后剩余: {len(df_filtered)}，"
+            f"共过滤掉 {initial_count - len(df_filtered)} 条"
+        )
 
         if df_filtered.empty:
             logger.warning("过滤后无剩余数据，无需调用模型。")
@@ -227,29 +162,23 @@ def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool 
         grouped = df_filtered.groupby("symptom")
         logger.info("=== 各 Symptom 记录数统计 ===\n" + df_filtered["symptom"].value_counts().to_string())
 
+        # 组之间本就串行（限流由 llm.client 统一控制），直接用 for，不再包一层
+        # max_workers=1 的线程池 + future_to_symptom 映射。
         all_qa_data = []
-        gbase_result_collector = {}
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future_to_symptom = {
-                executor.submit(process_group, symptom, group, gbase_result_collector): symptom
-                for symptom, group in grouped
-            }
-            for future in as_completed(future_to_symptom):
-                symptom = future_to_symptom[future]
-                try:
-                    qa_list = future.result()
-                    if qa_list:
-                        all_qa_data.extend(qa_list)
-                        logger.info(f"成功获取 symptom='{symptom}' 的 {len(qa_list)} 条 QA 结果")
-                except Exception as e:
-                    logger.error(f"任务执行异常 symptom='{symptom}': {e}", exc_info=True)
+        all_gbase_rows = []
+        for symptom, group in grouped:
+            try:
+                result = process_group(symptom, group)
+            except Exception as e:
+                logger.error(f"任务执行异常 symptom='{symptom}': {e}", exc_info=True)
+                continue
+            if result.qa_items:
+                all_qa_data.extend(result.qa_items)
+                logger.info(f"成功获取 symptom='{symptom}' 的 {len(result.qa_items)} 条 QA 结果")
+            for row in result.gbase_rows:
+                all_gbase_rows.append({"故障类型": symptom, **row})
 
         # GBase 明细 Excel（所有 symptom 合并到一个 sheet）
-        all_gbase_rows = []
-        for sym, rows in gbase_result_collector.items():
-            for row in rows:
-                row["故障类型"] = sym
-                all_gbase_rows.append(row)
         os.makedirs(DATA_DIR, exist_ok=True)
         if all_gbase_rows:
             gbase_output_file = os.path.join(DATA_DIR, f"gbase_{start_time}_{end_time}.xlsx")
@@ -258,7 +187,6 @@ def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool 
                 columns=["故障类型", "task_oid", "报障标题", "报障内容", "分公司处理意见"],
             ).to_excel(gbase_output_file, index=False)
             logger.info(f"GBase 查询结果已保存到 {gbase_output_file}")
-            print(f"GBase 查询结果已保存到 {gbase_output_file}")
         else:
             logger.warning("未获取到任何 GBase 数据，未生成 gbase Excel 文件。")
 
@@ -270,7 +198,8 @@ def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool 
 
         # 全部 symptom 组处理完成后统一写库一次
         if all_qa_data:
-            save_qa_knowledge(all_qa_data)
+            written = save_qa_knowledge(all_qa_data)
+            logger.info(f"写入标准问答对 {written} 条")
         else:
             logger.warning("未提取到任何有效 QA 数据。")
     except Exception as e:

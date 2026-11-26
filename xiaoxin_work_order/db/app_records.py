@@ -2,6 +2,9 @@
 
 对外只暴露 save_issue_results(final_df)：业务层把模型解析结果拼成 DataFrame 后
 调用一次，本模块按 fldColumn4（厂商处理意见）是否有效分流写入 4 张表。
+
+返回值仍是 ``{表名: 写入行数}``；``0`` 表示该分流没有数据、无需写入，
+``-1`` 表示该表写入异常（已记 ERROR 日志），调用方据此决定是否告警。
 """
 import pandas as pd
 from sqlalchemy import bindparam, text
@@ -22,6 +25,26 @@ APP_TABLES = (
     TABLE_NON_VENDOR,
 )
 _ALLOWED_TABLES = frozenset(APP_TABLES)
+
+# 表 1 / 表 2 的「目标列 → 来源列」；key_issues / key_word 都取 symptom
+ISSUE_COLUMNS = {
+    "task_oid": "task_oid",
+    "business": "business",
+    "last_time": "last_time",
+    "subclass": "subclass",
+    "create_time": "create_time",
+    "response_time": "response_time",
+    "error_msg": "error_msg",
+    "key_issues": "symptom",
+}
+CLOUD_COLUMNS = {
+    "task_oid": "task_oid",
+    "key_word": "symptom",
+    "last_time": "last_time",
+    "create_time": "create_time",
+    "response_time": "response_time",
+    "error_msg": "error_msg",
+}
 
 
 def clean_old_records(table_name: str, task_oid_list: list, engine=None):
@@ -50,6 +73,27 @@ def _append(table_name: str, df: pd.DataFrame, task_oid_list: list) -> int:
     return len(df)
 
 
+def _project(df: pd.DataFrame, columns: dict, drop_na_col: str = None) -> pd.DataFrame:
+    """按列映射挑列重命名；可选地丢弃某列为空/空串的行。"""
+    out = pd.DataFrame({dest: df[src] for dest, src in columns.items()})
+    if drop_na_col:
+        out = out.dropna(subset=[drop_na_col])
+        out = out[out[drop_na_col] != ""]
+    return out
+
+
+def _write_table(table_name: str, df: pd.DataFrame, task_oid_list: list) -> int:
+    """统一的「写一张表」入口：成功返回行数，异常记 ERROR 并返回 -1。"""
+    try:
+        written = _append(table_name, df, task_oid_list)
+    except Exception as e:
+        logger.error(f"写入 {table_name} 失败: {e}")
+        return -1
+    if written:
+        logger.info(f"写入表: {table_name} ({written}条)")
+    return written
+
+
 def save_issue_results(final_df: pd.DataFrame) -> dict:
     """把一次日期批次的解析结果分流写入 4 张表，返回 {表名: 写入行数}。
 
@@ -71,61 +115,25 @@ def save_issue_results(final_df: pd.DataFrame) -> dict:
 
     if not df_valid.empty:
         valid_oids = df_valid["task_oid"].unique().tolist()
-
-        # 表1：焦点问题记录（key_issues 取 symptom）
-        try:
-            df_issues = pd.DataFrame()
-            df_issues["task_oid"] = df_valid["task_oid"]
-            df_issues["business"] = df_valid["business"]
-            df_issues["last_time"] = df_valid["last_time"]
-            df_issues["subclass"] = df_valid["subclass"]
-            df_issues["create_time"] = df_valid["create_time"]
-            df_issues["response_time"] = df_valid["response_time"]
-            df_issues["error_msg"] = df_valid["error_msg"]
-            df_issues["key_issues"] = df_valid["symptom"]
-            df_issues = df_issues.dropna(subset=["key_issues"])
-            df_issues = df_issues[df_issues["key_issues"] != ""]
-            counts[TABLE_ISSUES] = _append(TABLE_ISSUES, df_issues, valid_oids)
-            if counts[TABLE_ISSUES]:
-                print(f"写入表: {TABLE_ISSUES} ({counts[TABLE_ISSUES]}条)")
-        except Exception as e:
-            logger.error(f"写入 {TABLE_ISSUES} 失败: {e}")
-
-        # 表2：词云数据（key_word 取 symptom）
-        try:
-            df_cloud = pd.DataFrame()
-            df_cloud["task_oid"] = df_valid["task_oid"]
-            df_cloud["key_word"] = df_valid["symptom"]
-            df_cloud["last_time"] = df_valid["last_time"]
-            df_cloud["create_time"] = df_valid["create_time"]
-            df_cloud["response_time"] = df_valid["response_time"]
-            df_cloud["error_msg"] = df_valid["error_msg"]
-            df_cloud = df_cloud.dropna(subset=["key_word"])
-            df_cloud = df_cloud[df_cloud["key_word"] != ""]
-            counts[TABLE_WORD_CLOUD] = _append(TABLE_WORD_CLOUD, df_cloud, valid_oids)
-            if counts[TABLE_WORD_CLOUD]:
-                print(f"写入表: {TABLE_WORD_CLOUD} ({counts[TABLE_WORD_CLOUD]}条)")
-        except Exception as e:
-            logger.error(f"写入 {TABLE_WORD_CLOUD} 失败: {e}")
-
-        # 表3：全量问答记录（去掉分流用的原始列 fldColumn4）
-        try:
-            df_valid_write = df_valid.drop(columns=["fldColumn4"], errors="ignore")
-            counts[TABLE_QA_RECORDS] = _append(TABLE_QA_RECORDS, df_valid_write, valid_oids)
-            if counts[TABLE_QA_RECORDS]:
-                print(f"写入表: {TABLE_QA_RECORDS} ({counts[TABLE_QA_RECORDS]}条)")
-        except Exception as e:
-            logger.error(f"写入 {TABLE_QA_RECORDS} 失败: {e}")
+        counts[TABLE_ISSUES] = _write_table(
+            TABLE_ISSUES, _project(df_valid, ISSUE_COLUMNS, drop_na_col="key_issues"), valid_oids
+        )
+        counts[TABLE_WORD_CLOUD] = _write_table(
+            TABLE_WORD_CLOUD, _project(df_valid, CLOUD_COLUMNS, drop_na_col="key_word"), valid_oids
+        )
+        counts[TABLE_QA_RECORDS] = _write_table(
+            TABLE_QA_RECORDS,
+            df_valid.drop(columns=["fldColumn4"], errors="ignore"),
+            valid_oids,
+        )
 
     # 无厂商处理意见的数据单独入表，供 QA 生成读取
     if not df_invalid.empty:
         invalid_oids = df_invalid["task_oid"].unique().tolist()
-        try:
-            df_invalid_write = df_invalid.drop(columns=["fldColumn4"], errors="ignore")
-            counts[TABLE_NON_VENDOR] = _append(TABLE_NON_VENDOR, df_invalid_write, invalid_oids)
-            if counts[TABLE_NON_VENDOR]:
-                print(f"写入表: {TABLE_NON_VENDOR} ({counts[TABLE_NON_VENDOR]}条)")
-        except Exception as e:
-            logger.error(f"写入 {TABLE_NON_VENDOR} 失败: {e}")
+        counts[TABLE_NON_VENDOR] = _write_table(
+            TABLE_NON_VENDOR,
+            df_invalid.drop(columns=["fldColumn4"], errors="ignore"),
+            invalid_oids,
+        )
 
     return counts

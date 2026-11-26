@@ -1,7 +1,7 @@
 """直连大模型客户端（OpenAI 兼容 /v1/chat/completions）。
 
 向模型服务发 chat/completions 请求，支持限流、重试与非流式 / 流式 SSE。
-提示词全部来自 prompts/ 本地文件。
+提示词全部来自 prompts/ 本地文件；<think> 清洗复用 common.strip_think()。
 """
 import json
 import re
@@ -10,6 +10,7 @@ from threading import Lock
 
 import requests
 
+from xiaoxin_work_order.common import strip_think
 from xiaoxin_work_order.config import (
     LLM_API_KEY,
     LLM_MAX_RETRIES,
@@ -44,13 +45,6 @@ class RateLimiter:
 
 
 _LIMITER = RateLimiter(LLM_QPS)
-
-
-def strip_think(text):
-    """去掉 Qwen3 / DeepSeek-R1 的思维链标签。"""
-    if text is None:
-        return ""
-    return re.sub(r"<think>.*?</think>", "", str(text), flags=re.DOTALL)
 
 
 def extract_json_block(text):
@@ -129,12 +123,15 @@ def _request_once(prompt, model, temperature, stream, timeout):
 
 
 def chat(prompt, *, model=None, temperature=None, stream=None, timeout=None, max_retries=None):
-    """发送一条完整提示词（单 user 消息，输入嵌在提示词里），返回清洗后的文本。"""
-    model = model or LLM_MODEL
+    """发送一条完整提示词（单 user 消息，输入嵌在提示词里），返回清洗后的文本。
+
+    所有可选参数统一用 ``is None`` 回退默认值：显式传 0 / False 不会被悄悄吞掉。
+    """
+    model = LLM_MODEL if model is None else model
     temperature = LLM_TEMPERATURE if temperature is None else temperature
     stream = LLM_STREAM if stream is None else stream
-    timeout = timeout or LLM_TIMEOUT
-    max_retries = max_retries or LLM_MAX_RETRIES
+    timeout = LLM_TIMEOUT if timeout is None else timeout
+    max_retries = LLM_MAX_RETRIES if max_retries is None else max_retries
 
     last_exc = None
     for attempt in range(1, max_retries + 1):

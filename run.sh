@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 小信工单摘要提取：用 docker run 启动，不依赖 docker compose。
-# 详细用法见同目录的《run.sh使用说明.txt》。
+# 详细用法见同目录的 how_to_run.txt。
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

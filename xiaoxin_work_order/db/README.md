@@ -44,7 +44,7 @@
 | QA MySQL | `QA_MYSQL_CONFIG`（`QA_DB_*`） | SQLAlchemy `read_sql` + pymysql `executemany` | 读 + 写 | 读非厂商工单、写标准问答对 |
 | GBase | `GBASE_CONFIG`（`GBASE_*`，库 `opera`） | pymysql 原生连接 | 只读 | 工单原始明细 |
 
-> 真实地址、账号、口令不写在本 README；`xiaoxin_work_order/config.py` 为三套数据源与模型服务提供内置默认值，可由 `.env` 或同名环境变量覆盖，优先级：**显式 export > `.env` > `config.py` 内置默认值**。`mysql_url()` 负责生成连接串并对账号密码做 URL 编码。
+> 真实地址、账号、口令不写在本 README；`xiaoxin_work_order/config.py` 为三套数据源与模型服务提供内置默认值，可由 `.env` 或同名环境变量覆盖，优先级：**显式 export > `.env` > `config.py` 内置默认值**。`mysql_url()` 负责生成连接串并对账号密码做 URL 编码；三套配置字典统一用 `database` 键（`GBASE_DB` 只是环境变量名），`verify_env` 不再需要 `db` / `database` 兜底。
 
 **连接在哪创建**：`connections.py` 是唯一入口，`app_engine()` / `qa_engine()` 按需创建并缓存（import 模块时不会连库，方便离线测试），`gbase_connection()` / `qa_connection()` 每次调用新建、用完即关。
 
@@ -61,9 +61,9 @@
 | `xxa_city_qa_knowledge` | QA MySQL | 写 | `qa_knowledge.save_qa_knowledge` | `question, answer, knowledge_source, work_id, name, city, city_text, task_oids` | 面向向量检索/RAG 的标准问答对 |
 | `xiaoxin`（opera 库） | GBase | 只读 | —（上游系统维护） | `TASK_OID, TASK_TITLE, fld_faultcontent, fld_column_2` | 工单原始：标题、报障内容、分公司处理意见 |
 
-**8 个提取字段**（模型输出 → 入库列）：`business` 业务、`device` 设备、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作（JSON 数组字符串）、`vendor_actions` 厂商操作（JSON 数组字符串）。另有 3 个元数据列：`create_time` 入库时间、`response_time` 模型响应耗时（毫秒）、`error_msg` 失败原因。
+**8 个提取字段**（模型输出 → 入库列）的唯一定义是 `xiaoxin_work_order/fields.py` 的 `FIELDS`：`business` 业务、`device` 设备、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作（JSON 数组字符串）、`vendor_actions` 厂商操作（JSON 数组字符串）。代码、测试与文档都从该常量派生，不再各抄一遍。另有 3 个元数据列：`create_time` 入库时间、`response_time` 模型响应耗时（毫秒）、`error_msg` 失败原因。
 
-**分流规则**：`fldColumn4`（厂商处理意见）有实质内容 → 前 3 张表；为空/`nan` → `xxa_bomc_qa_non_vendor`，且该批数据的 `vendor_actions` 会被置空。分流只在本模块做一次，业务层不用关心。
+**分流规则**：`fldColumn4`（厂商处理意见）有实质内容 → 前 3 张表；无实质内容 → `xxa_bomc_qa_non_vendor`，且该批数据的 `vendor_actions` 会被置空。判据统一走 `common.is_valid_content()`（与 `to_text()` 共用 `BLANK_MARKERS`：空值 / `nan` /「无」/「无无」）。分流只在本模块做一次，业务层不用关心。
 
 ---
 
@@ -84,7 +84,7 @@ from xiaoxin_work_order.db import (
 
 | 函数 | 签名 | 作用 | 异常/失败行为 |
 | --- | --- | --- | --- |
-| `save_issue_results` | `(final_df: pd.DataFrame) -> dict[str, int]` | 分流写 4 张表，返回 `{表名: 写入行数}` | 单表失败记 ERROR 日志，不影响其他表 |
+| `save_issue_results` | `(final_df: pd.DataFrame) -> dict[str, int]` | 分流写 4 张表，返回 `{表名: 写入行数}`（`0`=该分流无数据，`-1`=写入异常） | 单表失败记 ERROR 日志并返回 `-1`，不影响其他表；pipeline 据此记 WARNING |
 | `clean_old_records` | `(table_name, task_oid_list, engine=None)` | 按 task_oid 删旧（写前自动调用） | 表名不在白名单直接抛 `ValueError`；删失败记日志 |
 | `read_non_vendor` | `(start_time, end_time) -> pd.DataFrame` | 按 `last_time` 读时间段数据 | 异常向上抛给 pipeline 统一兜底 |
 | `get_records_by_ids` | `(id_list) -> pd.DataFrame` | 按 id 批量反查 | 失败返回空 DataFrame |
@@ -172,7 +172,7 @@ df = read_non_vendor("2026-04-01", "2026-04-28")
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `1024` | `T202604010002` | `2026-04-01 10:03:11` | `宽带无法使用` | `光猫亮红灯` | `光猫断电` | `[{"operation":"插电","result":"已恢复","suggestion":"无"}]` | … |
 
-业务层随后剔除 `symptom_detail == "其他"` 与 `branch_actions` 等于 `[{"operation":"无","result":"无","suggestion":"无"}]` 的记录，按 `symptom` 分组、每 400 条一批送模型聚类。**过滤与聚类不在本模块**，本模块只保证"原样把数据读出来"。
+业务层随后剔除 `symptom_detail == "其他"` 与 `branch_actions` 等于具名常量 `EMPTY_BRANCH_ACTIONS`（模型「全无」输出）的记录，按 `symptom` 分组、每 400 条一批送模型聚类。**过滤与聚类不在本模块**，本模块只保证"原样把数据读出来"。
 
 需要按聚类结果里的 `matched_issue_ids` 反查工单时：
 
@@ -225,14 +225,14 @@ n = save_qa_knowledge(qa_data)   # 返回 1
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 宽带无法上网且光猫亮红灯如何处理 | 【问题原因】…【解决方案】… | 工单提取 | system | 知识管理平台 | 999 | 全省 | `1024,1025` |
 
-其中 `knowledge_source / work_id / name / city / city_text` 是本模块填充的固定值；`task_oids` 由 `matched_issue_ids` 去掉方括号与空格得到，表示这条标准问答由哪些工单聚类而来。
+其中 `knowledge_source / work_id / name / city / city_text` 是本模块填充的固定值；`task_oids` 由 `common.format_issue_ids()` 把 `matched_issue_ids` 统一成逗号分隔字符串得到（反向解析用 `common.parse_issue_ids()`），表示这条标准问答由哪些工单聚类而来。
 
 ---
 
 ## 6. 幂等、事务与错误处理
 
 - **app 4 张表**：每次写入前按本批 `task_oid` 执行 `DELETE ... WHERE task_oid IN (...)`，再 `to_sql(..., if_exists="append")`，所以同一天重复跑不会产生重复行。DELETE 使用 SQLAlchemy `expanding` 绑定参数，表名取自 `APP_TABLES` 白名单，避免拼接注入。
-- **每张表独立 try/except**：某张表写失败只记 ERROR 日志并继续写其他表；`save_issue_results` 返回的 dict 可直接看哪张表写了几行。
+- **每张表独立 try/except**：某张表写失败只记 ERROR 日志、在该表计数里返回 `-1`，并继续写其他表；`save_issue_results` 返回的 dict 可直接看哪张表写了几行，pipeline 接收后据此记 WARNING，不再无条件打印「完成」。
 - **QA 表**：`executemany` 一次提交，失败 `rollback` 并返回 0；该表是**追加写**，不做按 id 去重。
 - **连接**：引擎缓存复用；pymysql 原生连接 `try/finally` 关闭；`pool_pre_ping=True` + `pool_recycle=3600` 防长连接失效。
 

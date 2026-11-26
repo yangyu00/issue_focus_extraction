@@ -58,7 +58,9 @@ run.sh 使用说明
        · 拿到非空数据  -> 隔 10 分钟复核一次
        · 两次指纹一致  -> 判定「数据不再增长」，才用这份数据跑模型入库
        · 仍在增长/变化 -> 隔 1 小时再校验（指纹 = 行数 + taskOid 集合 + 最大 lastTime）
-     所有等待都由主循环轮询推进，不 sleep 阻塞；重试严格限制在运行日当天，
+     所有等待都由主循环轮询推进，等待期间不 sleep 阻塞；判定数据稳定后，
+     本次轮询会同步调用 on_stable 跑模型入库（可能耗时数分钟，见 scheduling.py）；
+     重试严格限制在运行日当天，
      到 23:00 仍未就绪就放弃并记 WARN，绝不带到转天，不影响次日 01:00 的批次。
      放弃的日期需手动补跑：--mode batch --start <日期> --end <日期>
 
@@ -144,4 +146,4 @@ python -m xiaoxin_work_order.cli.app --mode batch --start ... --end ...
 python -m xiaoxin_work_order.cli.generate_qa --start ... --end ...
 python -m xiaoxin_work_order.cli.verify_env
 
-更多说明见 README.md「九、部署与自检」。
+更多说明见 README.md「八、部署与自检」。

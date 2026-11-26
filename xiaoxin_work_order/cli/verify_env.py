@@ -23,11 +23,13 @@ from xiaoxin_work_order.config import (
     QA_MYSQL_CONFIG,
 )
 from xiaoxin_work_order.db import APP_TABLES
+from xiaoxin_work_order.logging_setup import setup_logging
 
 # 只读检查：不打印任何账号、密码、API Key
 
 
-def _check_mysql(cfg, label, tables=()):
+def _check_mysql(cfg, tables=()):
+    """三套数据源统一用 database 键；cursor 一律用上下文管理。"""
     t0 = time.time()
     conn = pymysql.connect(
         connect_timeout=5, read_timeout=5, write_timeout=5, **cfg
@@ -36,20 +38,18 @@ def _check_mysql(cfg, label, tables=()):
         with conn.cursor() as cur:
             cur.execute("SELECT VERSION()")
             version = cur.fetchone()[0]
-        note = f"server {version}"
-        if tables:
-            placeholders = ",".join(["%s"] * len(tables))
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT TABLE_NAME FROM information_schema.TABLES "
-                f"WHERE TABLE_SCHEMA=%s AND TABLE_NAME IN ({placeholders})",
-                (cfg.get("database") or cfg.get("db"), *tables),
-            )
-            found = {row[0] for row in cur.fetchall()}
-            missing = [t for t in tables if t not in found]
-            cur.close()
-            if missing:
-                note += f" | WARN 缺少表: {','.join(missing)}"
+            note = f"server {version}"
+            if tables:
+                placeholders = ",".join(["%s"] * len(tables))
+                cur.execute(
+                    "SELECT TABLE_NAME FROM information_schema.TABLES "
+                    f"WHERE TABLE_SCHEMA=%s AND TABLE_NAME IN ({placeholders})",
+                    (cfg["database"], *tables),
+                )
+                found = {row[0] for row in cur.fetchall()}
+                missing = [t for t in tables if t not in found]
+                if missing:
+                    note += f" | WARN 缺少表: {','.join(missing)}"
         return True, note, time.time() - t0
     finally:
         conn.close()
@@ -83,6 +83,8 @@ def _check_model():
 
 
 def main():
+    setup_logging()
+
     parser = argparse.ArgumentParser(
         prog="python -m xiaoxin_work_order.cli.verify_env",
         description="上线前只读连通性自检",
@@ -92,9 +94,9 @@ def main():
     args = parser.parse_args()
 
     checks = [
-        ("app 入库 MySQL", lambda: _check_mysql(MYSQL_CONFIG, "app", APP_TABLES)),
-        ("QA MySQL", lambda: _check_mysql(QA_MYSQL_CONFIG, "qa")),
-        ("GBase opera", lambda: _check_mysql(GBASE_CONFIG, "gbase")),
+        ("app 入库 MySQL", lambda: _check_mysql(MYSQL_CONFIG, APP_TABLES)),
+        ("QA MySQL", lambda: _check_mysql(QA_MYSQL_CONFIG)),
+        ("GBase opera", lambda: _check_mysql(GBASE_CONFIG)),
     ]
     if not args.skip_api:
         checks.append(("后端取数接口", _check_api))

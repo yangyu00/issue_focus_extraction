@@ -1,4 +1,12 @@
-"""日志配置。"""
+"""日志配置：只在 CLI 入口调用一次 ``setup_logging()``，库模块只导入 ``logger``。
+
+三个 sink：INFO 文件、ERROR 文件、stderr（屏幕）。业务事件统一走 logger，
+不再用 ``print`` 与 ``logger`` 双发；只有交互式横幅 / CLI 报告保留 print。
+loguru 的 logger 是全局单例，流水线模块若各自配置会互相覆盖，故收口到入口。
+"""
+import os
+import sys
+
 from loguru import logger
 
 from xiaoxin_work_order.config import (
@@ -8,37 +16,36 @@ from xiaoxin_work_order.config import (
     INFO_LOG_PATH,
 )
 
+_FILE_FORMAT = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | (file:{file.name}:{line}) {message}"
+_STDERR_FORMAT = "{time:HH:mm:ss} | {level} | {message}"
+_ROTATION = "00:00"        # 每天生成一个新日志文件
+_RETENTION = "180 days"
 
-def setup_logging(info_log_name=INFO_LOG_NAME, error_log_name=ERROR_LOG_NAME):
-    # 移除默认配置，重新配置
-    logger.remove()
 
-    # INFO 日志
+def _add_daily_sink(path, name, level):
+    """按天轮转的文件 sink；INFO / ERROR 两份只有路径与 level 不同。"""
     logger.add(
-        f"{INFO_LOG_PATH}/{info_log_name}_{{time:YYYY-MM-DD}}.log",
-        level="INFO",
-        rotation="00:00",       # 每天生成一个新日志文件
-        encoding="utf8",
-        compression=None,       # 不压缩
-        retention="180 days",   # 保留180天
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | (file:{file.name}:{line}) {message}",
-        backtrace=True,
-        diagnose=True,
-    )
-
-    # ERROR 日志
-    logger.add(
-        f"{ERROR_LOG_PATH}/{error_log_name}_{{time:YYYY-MM-DD}}.log",
-        level="ERROR",
-        rotation="00:00",
+        f"{path}/{name}_{{time:YYYY-MM-DD}}.log",
+        level=level,
+        rotation=_ROTATION,
         encoding="utf8",
         compression=None,
-        retention="180 days",
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level} | (file:{file.name}:{line}) {message}",
+        retention=_RETENTION,
+        format=_FILE_FORMAT,
         backtrace=True,
         diagnose=True,
     )
 
 
-# 默认初始化一次，保证其他引用的地方能正常使用默认配置
-setup_logging()
+def setup_logging(info_log_name=INFO_LOG_NAME, error_log_name=ERROR_LOG_NAME):
+    """配置全局 logger（重复调用会整体重置）。
+
+    日志目录的创建也收口在这里：import 模块时既不连库、也不建目录。
+    """
+    os.makedirs(INFO_LOG_PATH, exist_ok=True)
+    os.makedirs(ERROR_LOG_PATH, exist_ok=True)
+
+    logger.remove()
+    _add_daily_sink(INFO_LOG_PATH, info_log_name, "INFO")
+    _add_daily_sink(ERROR_LOG_PATH, error_log_name, "ERROR")
+    logger.add(sys.stderr, level="INFO", format=_STDERR_FORMAT)
