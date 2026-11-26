@@ -6,17 +6,17 @@
     业务 → MAPPING → 二级分类 → MAPPING → 故障现象串行；
     全部结果经 clean_field() 清洗后，按 OUTPUT_KEYS 顺序组装 8 字段 JSON 字符串返回。
 
-提示词来自 prompts/；返回值由 app.py 的 process_model_output_for_db() 解析。
+提示词来自 prompts/；返回值由 pipelines.issue_pipeline 的 process_model_output_for_db() 解析。
 """
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from config import FIELD_WORKERS, LLM_MODEL
-from llm_client import chat
-from mappings import MAPPING
-from prompt_loader import load_prompt
-from utils import logger
+from xiaoxin.config import FIELD_WORKERS, LLM_MODEL
+from xiaoxin.llm.client import chat
+from xiaoxin.llm.mappings import MAPPING
+from xiaoxin.llm.prompt_loader import load_prompt
+from xiaoxin.logging_setup import logger
 
 # 彼此无依赖、可并发的 6 个字段
 PARALLEL_FIELDS = (
@@ -104,7 +104,7 @@ def extract_issue(query):
 
 
 def run_extraction(query):
-    """供 app.py 调用：返回 (raw_json, error_msg)。"""
+    """供 pipelines.issue_pipeline 调用：返回 (raw_json, error_msg)。"""
     raw_json, errors = extract_issue(query)
     error_msg = "; ".join(errors)[:1024] if errors else ""
     return raw_json, error_msg

@@ -1,6 +1,12 @@
-"""日志配置。"""
-from config import *
+"""日志配置（原 utils.py）。"""
 from loguru import logger
+
+from xiaoxin.config import (
+    ERROR_LOG_NAME,
+    ERROR_LOG_PATH,
+    INFO_LOG_NAME,
+    INFO_LOG_PATH,
+)
 
 
 def setup_logging(info_log_name=INFO_LOG_NAME, error_log_name=ERROR_LOG_NAME):

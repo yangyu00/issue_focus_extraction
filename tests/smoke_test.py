@@ -95,9 +95,9 @@ def main():
     })
 
     import json_repair
-    import app
-    import generate_qa
-    import issue_workflow
+    from xiaoxin.extraction import workflow as issue_workflow
+    from xiaoxin.pipelines import issue_pipeline as app
+    from xiaoxin.pipelines import qa_pipeline as generate_qa
 
     sample = "标题：宽带无法上网\n描述：光猫亮红灯\n分公司处理意见：已重启光猫\n厂商处理意见：已更换端口"
 

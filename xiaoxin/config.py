@@ -2,11 +2,14 @@
 
 所有连接信息、运行参数集中在此，支持用同名环境变量覆盖，便于 docker / 生产环境外置密钥。
 若线上 DB 端口/地址不同，直接设环境变量即可，不必改代码。
+
+注意：本文件位于 xiaoxin/ 包内，PROJECT_PATH 取上一级（仓库根），
+因此 .env / prompts / logs / data 的路径与原根目录版本完全一致。
 """
 import os
 from urllib.parse import quote_plus
 
-PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ================= 日志 =================
 BASE_LOG_PATH = os.path.join(PROJECT_PATH, "logs")
@@ -63,7 +66,7 @@ def _b(name, default):
     return val.strip().lower() in ("1", "true", "yes", "on")
 
 
-# ================= MySQL：app.py 每日 / 批量入库 =================
+# ================= MySQL：每日 / 批量入库 =================
 # 默认端口 6306；如线上端口不同，设 DB_PORT 覆盖。
 MYSQL_CONFIG = {
     "host": _s("DB_HOST", "134.84.22.233"),
@@ -74,7 +77,7 @@ MYSQL_CONFIG = {
     "charset": "utf8mb4",
 }
 
-# ================= MySQL：generate_qa 读取与写库 =================
+# ================= MySQL：QA 生成读取与写库 =================
 # QA 读写与 app 入库不在同一地址，单独保留一份配置。
 QA_MYSQL_CONFIG = {
     "host": _s("QA_DB_HOST", "172.21.224.71"),

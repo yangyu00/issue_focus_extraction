@@ -10,7 +10,7 @@ from threading import Lock
 
 import requests
 
-from config import (
+from xiaoxin.config import (
     LLM_API_KEY,
     LLM_MAX_RETRIES,
     LLM_MODEL,
@@ -20,7 +20,7 @@ from config import (
     LLM_TIMEOUT,
     LLM_URL,
 )
-from utils import logger
+from xiaoxin.logging_setup import logger
 
 
 class RateLimiter:

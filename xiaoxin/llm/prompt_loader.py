@@ -1,12 +1,12 @@
 """本地提示词加载。
 
-所有提示词以 .txt 形式维护在 prompts/ 目录下，模板里用 {{name}} 占位，
+所有提示词以 .txt 形式维护在仓库根目录 prompts/ 下，模板里用 {{name}} 占位，
 运行时由 load_prompt(name, ...) 注入。改提示词只需改文件，不用改代码。
 """
 import os
 import re
 
-from config import PROMPTS_DIR
+from xiaoxin.config import PROMPTS_DIR
 
 _PLACEHOLDER = re.compile(r"\{\{([^{}]+)\}\}")
 
