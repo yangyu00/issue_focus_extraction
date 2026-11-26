@@ -1,0 +1,290 @@
+2026-04-25 15:00:30.268 | INFO | (file:generate_qa.py:220) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-01-01 至 2026-04-01
+2026-04-25 15:00:31.059 | INFO | (file:generate_qa.py:237) 读取到总记录数: 22509
+2026-04-25 15:00:31.066 | INFO | (file:generate_qa.py:244) 过滤 symptom_detail='其他' 后剩余: 14674
+2026-04-25 15:00:31.070 | INFO | (file:generate_qa.py:254) 过滤 branch_actions 特定值后剩余: 14575
+2026-04-25 15:00:31.070 | INFO | (file:generate_qa.py:257) 共过滤掉 7934 条数据。
+2026-04-25 15:00:31.107 | INFO | (file:generate_qa.py:285) === 各 Symptom 记录数统计 ===
+2026-04-25 15:00:31.144 | INFO | (file:generate_qa.py:80) symptom='4G服务/GPRS无法使用'：向 GBase 查询 183 个 task_oid
+2026-04-25 15:00:41.175 | WARNING | (file:generate_qa.py:94) symptom='4G服务/GPRS无法使用'：GBase 未返回任何记录
+2026-04-25 15:00:41.181 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='4G服务/GPRS无法使用' (批次 1)，包含 183 条记录 (总 183 条)
+2026-04-25 15:01:47.361 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='4G服务/GPRS无法使用' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000181EDAC0850>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:01:47.367 | INFO | (file:generate_qa.py:80) symptom='APP问题'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:01:47.368 | INFO | (file:generate_qa.py:317) 成功获取 symptom='4G服务/GPRS无法使用' 的 1 条 QA 结果
+2026-04-25 15:01:57.380 | WARNING | (file:generate_qa.py:94) symptom='APP问题'：GBase 未返回任何记录
+2026-04-25 15:01:57.380 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='APP问题' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:03:03.524 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='APP问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000181EDACA950>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:03:03.535 | INFO | (file:generate_qa.py:80) symptom='BBOSS上传不成功'：向 GBase 查询 23 个 task_oid
+2026-04-25 15:03:03.535 | INFO | (file:generate_qa.py:317) 成功获取 symptom='APP问题' 的 1 条 QA 结果
+2026-04-25 15:03:13.547 | WARNING | (file:generate_qa.py:94) symptom='BBOSS上传不成功'：GBase 未返回任何记录
+2026-04-25 15:03:13.548 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='BBOSS上传不成功' (批次 1)，包含 23 条记录 (总 23 条)
+2026-04-25 15:04:19.688 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='BBOSS上传不成功' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000181EDAD9D50>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:04:19.689 | INFO | (file:generate_qa.py:317) 成功获取 symptom='BBOSS上传不成功' 的 1 条 QA 结果
+2026-04-25 15:04:19.689 | INFO | (file:generate_qa.py:80) symptom='BBOSS未归档'：向 GBase 查询 17 个 task_oid
+2026-04-25 15:04:29.698 | WARNING | (file:generate_qa.py:94) symptom='BBOSS未归档'：GBase 未返回任何记录
+2026-04-25 15:04:29.699 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='BBOSS未归档' (批次 1)，包含 17 条记录 (总 17 条)
+2026-04-25 15:09:27.321 | INFO | (file:generate_qa.py:220) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-01-01 至 2026-04-01
+2026-04-25 15:09:27.362 | WARNING | (file:generate_qa.py:233) 时间段 2026-01-01 ~ 2026-04-01 内无数据。
+2026-04-25 15:09:46.022 | INFO | (file:generate_qa.py:220) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-01-01 至 2026-04-01
+2026-04-25 15:09:46.078 | WARNING | (file:generate_qa.py:233) 时间段 2026-01-01 ~ 2026-04-01 内无数据。
+2026-04-25 15:10:41.141 | INFO | (file:generate_qa.py:220) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:10:41.226 | INFO | (file:generate_qa.py:237) 读取到总记录数: 1000
+2026-04-25 15:10:41.230 | INFO | (file:generate_qa.py:244) 过滤 symptom_detail='其他' 后剩余: 708
+2026-04-25 15:10:41.230 | INFO | (file:generate_qa.py:254) 过滤 branch_actions 特定值后剩余: 697
+2026-04-25 15:10:41.230 | INFO | (file:generate_qa.py:257) 共过滤掉 303 条数据。
+2026-04-25 15:10:41.236 | INFO | (file:generate_qa.py:285) === 各 Symptom 记录数统计 ===
+2026-04-25 15:10:41.241 | INFO | (file:generate_qa.py:80) symptom='4G服务/GPRS无法使用'：向 GBase 查询 5 个 task_oid
+2026-04-25 15:10:51.260 | WARNING | (file:generate_qa.py:94) symptom='4G服务/GPRS无法使用'：GBase 未返回任何记录
+2026-04-25 15:10:51.261 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='4G服务/GPRS无法使用' (批次 1)，包含 5 条记录 (总 5 条)
+2026-04-25 15:11:57.445 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='4G服务/GPRS无法使用' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB9395490>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:11:57.449 | INFO | (file:generate_qa.py:80) symptom='BBOSS未归档'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:11:57.450 | INFO | (file:generate_qa.py:317) 成功获取 symptom='4G服务/GPRS无法使用' 的 1 条 QA 结果
+2026-04-25 15:12:07.469 | WARNING | (file:generate_qa.py:94) symptom='BBOSS未归档'：GBase 未返回任何记录
+2026-04-25 15:12:07.469 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='BBOSS未归档' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:13:13.613 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='BBOSS未归档' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB9393310>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:13:13.613 | INFO | (file:generate_qa.py:80) symptom='CMOP问题'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:13:13.613 | INFO | (file:generate_qa.py:317) 成功获取 symptom='BBOSS未归档' 的 1 条 QA 结果
+2026-04-25 15:13:23.625 | WARNING | (file:generate_qa.py:94) symptom='CMOP问题'：GBase 未返回任何记录
+2026-04-25 15:13:23.625 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='CMOP问题' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:14:29.792 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='CMOP问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93C1CD0>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:14:29.794 | INFO | (file:generate_qa.py:80) symptom='ESOP问题'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:14:29.794 | INFO | (file:generate_qa.py:317) 成功获取 symptom='CMOP问题' 的 1 条 QA 结果
+2026-04-25 15:14:39.810 | WARNING | (file:generate_qa.py:94) symptom='ESOP问题'：GBase 未返回任何记录
+2026-04-25 15:14:39.811 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='ESOP问题' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:15:45.947 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='ESOP问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93CD510>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:15:45.949 | INFO | (file:generate_qa.py:80) symptom='GPRS无法使用'：向 GBase 查询 3 个 task_oid
+2026-04-25 15:15:45.949 | INFO | (file:generate_qa.py:317) 成功获取 symptom='ESOP问题' 的 1 条 QA 结果
+2026-04-25 15:15:55.953 | WARNING | (file:generate_qa.py:94) symptom='GPRS无法使用'：GBase 未返回任何记录
+2026-04-25 15:15:55.954 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='GPRS无法使用' (批次 1)，包含 3 条记录 (总 3 条)
+2026-04-25 15:17:02.056 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='GPRS无法使用' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93C34D0>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:17:02.057 | INFO | (file:generate_qa.py:80) symptom='GPRS流量计算有疑义咨询'：向 GBase 查询 2 个 task_oid
+2026-04-25 15:17:02.057 | INFO | (file:generate_qa.py:317) 成功获取 symptom='GPRS无法使用' 的 1 条 QA 结果
+2026-04-25 15:17:12.066 | WARNING | (file:generate_qa.py:94) symptom='GPRS流量计算有疑义咨询'：GBase 未返回任何记录
+2026-04-25 15:17:12.067 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='GPRS流量计算有疑义咨询' (批次 1)，包含 2 条记录 (总 2 条)
+2026-04-25 15:18:18.196 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='GPRS流量计算有疑义咨询' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB9392990>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:18:18.197 | INFO | (file:generate_qa.py:80) symptom='一证多名'：向 GBase 查询 6 个 task_oid
+2026-04-25 15:18:18.197 | INFO | (file:generate_qa.py:317) 成功获取 symptom='GPRS流量计算有疑义咨询' 的 1 条 QA 结果
+2026-04-25 15:18:28.206 | WARNING | (file:generate_qa.py:94) symptom='一证多名'：GBase 未返回任何记录
+2026-04-25 15:18:28.207 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='一证多名' (批次 1)，包含 6 条记录 (总 6 条)
+2026-04-25 15:19:34.325 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='一证多名' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93D9C50>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:19:34.326 | INFO | (file:generate_qa.py:80) symptom='专线计费异常'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:19:34.326 | INFO | (file:generate_qa.py:317) 成功获取 symptom='一证多名' 的 1 条 QA 结果
+2026-04-25 15:19:44.333 | WARNING | (file:generate_qa.py:94) symptom='专线计费异常'：GBase 未返回任何记录
+2026-04-25 15:19:44.333 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='专线计费异常' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:20:50.443 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='专线计费异常' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93CC650>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:20:50.445 | INFO | (file:generate_qa.py:80) symptom='专线问题（跨省/本地）'：向 GBase 查询 2 个 task_oid
+2026-04-25 15:20:50.445 | INFO | (file:generate_qa.py:317) 成功获取 symptom='专线计费异常' 的 1 条 QA 结果
+2026-04-25 15:21:00.452 | WARNING | (file:generate_qa.py:94) symptom='专线问题（跨省/本地）'：GBase 未返回任何记录
+2026-04-25 15:21:00.453 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='专线问题（跨省/本地）' (批次 1)，包含 2 条记录 (总 2 条)
+2026-04-25 15:22:06.613 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='专线问题（跨省/本地）' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB9389C90>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:22:06.613 | INFO | (file:generate_qa.py:80) symptom='业务依赖问题'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:22:06.613 | INFO | (file:generate_qa.py:317) 成功获取 symptom='专线问题（跨省/本地）' 的 1 条 QA 结果
+2026-04-25 15:22:16.625 | WARNING | (file:generate_qa.py:94) symptom='业务依赖问题'：GBase 未返回任何记录
+2026-04-25 15:22:16.625 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务依赖问题' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:23:22.748 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务依赖问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93E1010>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:23:22.749 | INFO | (file:generate_qa.py:80) symptom='业务办理异常'：向 GBase 查询 2 个 task_oid
+2026-04-25 15:23:22.749 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务依赖问题' 的 1 条 QA 结果
+2026-04-25 15:23:32.763 | WARNING | (file:generate_qa.py:94) symptom='业务办理异常'：GBase 未返回任何记录
+2026-04-25 15:23:32.764 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务办理异常' (批次 1)，包含 2 条记录 (总 2 条)
+2026-04-25 15:24:38.935 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务办理异常' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB9394D10>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:24:38.936 | INFO | (file:generate_qa.py:80) symptom='业务办理问题'：向 GBase 查询 8 个 task_oid
+2026-04-25 15:24:38.936 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务办理异常' 的 1 条 QA 结果
+2026-04-25 15:24:48.944 | WARNING | (file:generate_qa.py:94) symptom='业务办理问题'：GBase 未返回任何记录
+2026-04-25 15:24:48.945 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务办理问题' (批次 1)，包含 8 条记录 (总 8 条)
+2026-04-25 15:25:55.082 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务办理问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93D8890>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:25:55.084 | INFO | (file:generate_qa.py:80) symptom='业务受理查询'：向 GBase 查询 10 个 task_oid
+2026-04-25 15:25:55.084 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务办理问题' 的 1 条 QA 结果
+2026-04-25 15:26:05.090 | WARNING | (file:generate_qa.py:94) symptom='业务受理查询'：GBase 未返回任何记录
+2026-04-25 15:26:05.090 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务受理查询' (批次 1)，包含 10 条记录 (总 10 条)
+2026-04-25 15:27:11.215 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务受理查询' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB940C310>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:27:11.216 | INFO | (file:generate_qa.py:80) symptom='业务变更问题'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:27:11.216 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务受理查询' 的 1 条 QA 结果
+2026-04-25 15:27:21.236 | WARNING | (file:generate_qa.py:94) symptom='业务变更问题'：GBase 未返回任何记录
+2026-04-25 15:27:21.237 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务变更问题' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:28:27.401 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务变更问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93CDE10>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:28:27.402 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务变更问题' 的 1 条 QA 结果
+2026-04-25 15:28:27.402 | INFO | (file:generate_qa.py:80) symptom='业务回退问题'：向 GBase 查询 14 个 task_oid
+2026-04-25 15:28:37.419 | WARNING | (file:generate_qa.py:94) symptom='业务回退问题'：GBase 未返回任何记录
+2026-04-25 15:28:37.420 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务回退问题' (批次 1)，包含 14 条记录 (总 14 条)
+2026-04-25 15:29:43.525 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务回退问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB93CDF50>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:29:43.525 | INFO | (file:generate_qa.py:80) symptom='业务操作问题'：向 GBase 查询 3 个 task_oid
+2026-04-25 15:29:43.526 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务回退问题' 的 1 条 QA 结果
+2026-04-25 15:29:53.543 | WARNING | (file:generate_qa.py:94) symptom='业务操作问题'：GBase 未返回任何记录
+2026-04-25 15:29:53.545 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务操作问题' (批次 1)，包含 3 条记录 (总 3 条)
+2026-04-25 15:30:59.678 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务操作问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB9420150>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:30:59.679 | INFO | (file:generate_qa.py:80) symptom='业务限制'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:30:59.681 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务操作问题' 的 1 条 QA 结果
+2026-04-25 15:31:09.690 | WARNING | (file:generate_qa.py:94) symptom='业务限制'：GBase 未返回任何记录
+2026-04-25 15:31:09.691 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务限制' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:32:15.848 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='业务限制' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DAB941AC10>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:32:15.849 | INFO | (file:generate_qa.py:80) symptom='业务限制解除'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:32:15.849 | INFO | (file:generate_qa.py:317) 成功获取 symptom='业务限制' 的 1 条 QA 结果
+2026-04-25 15:32:25.862 | WARNING | (file:generate_qa.py:94) symptom='业务限制解除'：GBase 未返回任何记录
+2026-04-25 15:32:25.863 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='业务限制解除' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:32:56.275 | INFO | (file:generate_qa.py:220) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:32:56.334 | INFO | (file:generate_qa.py:237) 读取到总记录数: 8
+2026-04-25 15:32:56.335 | INFO | (file:generate_qa.py:244) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:32:56.336 | INFO | (file:generate_qa.py:254) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:32:56.336 | INFO | (file:generate_qa.py:257) 共过滤掉 2 条数据。
+2026-04-25 15:32:56.336 | INFO | (file:generate_qa.py:285) === 各 Symptom 记录数统计 ===
+2026-04-25 15:32:56.337 | INFO | (file:generate_qa.py:80) symptom='其他'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:33:06.368 | WARNING | (file:generate_qa.py:94) symptom='其他'：GBase 未返回任何记录
+2026-04-25 15:33:06.370 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='其他' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:34:12.502 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='其他' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002EBEAAAB150>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:34:12.506 | INFO | (file:generate_qa.py:80) symptom='包月费扣减不准确'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:34:12.506 | INFO | (file:generate_qa.py:317) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:34:22.517 | WARNING | (file:generate_qa.py:94) symptom='包月费扣减不准确'：GBase 未返回任何记录
+2026-04-25 15:34:22.518 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='包月费扣减不准确' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:35:28.646 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='包月费扣减不准确' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002EBEAAA8C50>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:35:28.646 | INFO | (file:generate_qa.py:80) symptom='发票/专票打印问题'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:35:28.646 | INFO | (file:generate_qa.py:317) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:35:38.663 | WARNING | (file:generate_qa.py:94) symptom='发票/专票打印问题'：GBase 未返回任何记录
+2026-04-25 15:35:38.664 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='发票/专票打印问题' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:36:44.846 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='发票/专票打印问题' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002EBEAADCB50>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:36:44.847 | INFO | (file:generate_qa.py:80) symptom='受理单缺失'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:36:44.847 | INFO | (file:generate_qa.py:317) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:36:54.860 | WARNING | (file:generate_qa.py:94) symptom='受理单缺失'：GBase 未返回任何记录
+2026-04-25 15:36:54.860 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='受理单缺失' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:38:00.993 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='受理单缺失' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002EBEAADCF50>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:38:00.993 | INFO | (file:generate_qa.py:80) symptom='商品订购问题（产品变更）'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:38:00.994 | INFO | (file:generate_qa.py:317) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:38:10.998 | WARNING | (file:generate_qa.py:94) symptom='商品订购问题（产品变更）'：GBase 未返回任何记录
+2026-04-25 15:38:10.999 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='商品订购问题（产品变更）' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:39:17.161 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='商品订购问题（产品变更）' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002EBEAAD5390>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:39:17.161 | INFO | (file:generate_qa.py:80) symptom='账单详单查询/咨询'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:39:17.161 | INFO | (file:generate_qa.py:317) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:39:27.168 | WARNING | (file:generate_qa.py:94) symptom='账单详单查询/咨询'：GBase 未返回任何记录
+2026-04-25 15:39:27.170 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='账单详单查询/咨询' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:40:33.303 | ERROR | (file:generate_qa.py:138) 调用模型失败 symptom='账单详单查询/咨询' (批次 1): 所有请求在 3 次尝试后失败，最后错误: HTTPConnectionPool(host='134.84.255.13', port=23471): Max retries exceeded with url: /v1/chat/completions (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002EBEAAF4E90>, 'Connection to 134.84.255.13 timed out. (connect timeout=120)'))
+2026-04-25 15:40:33.303 | INFO | (file:generate_qa.py:317) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:40:33.305 | INFO | (file:generate_qa.py:334) GBase 查询结果已保存到 data\gbase_2026-04-01_2026-04-28.xlsx
+2026-04-25 15:40:33.315 | ERROR | (file:generate_qa.py:358) 处理数据时出错: 'latin-1' codec can't encode characters in position 0-3: ordinal not in range(256)
+2026-04-25 15:42:48.763 | INFO | (file:generate_qa.py:220) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:42:48.818 | INFO | (file:generate_qa.py:237) 读取到总记录数: 8
+2026-04-25 15:42:48.819 | INFO | (file:generate_qa.py:244) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:42:48.819 | INFO | (file:generate_qa.py:254) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:42:48.819 | INFO | (file:generate_qa.py:257) 共过滤掉 2 条数据。
+2026-04-25 15:42:48.820 | INFO | (file:generate_qa.py:285) === 各 Symptom 记录数统计 ===
+2026-04-25 15:42:48.821 | INFO | (file:generate_qa.py:80) symptom='其他'：向 GBase 查询 1 个 task_oid
+2026-04-25 15:42:58.833 | WARNING | (file:generate_qa.py:94) symptom='其他'：GBase 未返回任何记录
+2026-04-25 15:42:58.835 | INFO | (file:generate_qa.py:115) 正在提交处理 symptom='其他' (批次 1)，包含 1 条记录 (总 1 条)
+2026-04-25 15:43:32.360 | INFO | (file:generate_qa.py:221) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:43:32.433 | INFO | (file:generate_qa.py:238) 读取到总记录数: 8
+2026-04-25 15:43:32.434 | INFO | (file:generate_qa.py:245) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:43:32.435 | INFO | (file:generate_qa.py:255) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:43:32.436 | INFO | (file:generate_qa.py:258) 共过滤掉 2 条数据。
+2026-04-25 15:43:32.437 | INFO | (file:generate_qa.py:286) === 各 Symptom 记录数统计 ===
+2026-04-25 15:43:32.441 | INFO | (file:generate_qa.py:319) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:43:32.442 | INFO | (file:generate_qa.py:319) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:43:32.442 | INFO | (file:generate_qa.py:319) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:43:32.442 | INFO | (file:generate_qa.py:319) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:43:32.442 | INFO | (file:generate_qa.py:319) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:43:32.442 | INFO | (file:generate_qa.py:319) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:43:32.442 | WARNING | (file:generate_qa.py:339) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:43:32.443 | ERROR | (file:generate_qa.py:360) 处理数据时出错: 'latin-1' codec can't encode characters in position 0-3: ordinal not in range(256)
+2026-04-25 15:44:04.600 | INFO | (file:generate_qa.py:221) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:44:04.667 | INFO | (file:generate_qa.py:238) 读取到总记录数: 8
+2026-04-25 15:44:04.667 | INFO | (file:generate_qa.py:245) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:44:04.667 | INFO | (file:generate_qa.py:255) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:44:04.667 | INFO | (file:generate_qa.py:258) 共过滤掉 2 条数据。
+2026-04-25 15:44:04.669 | INFO | (file:generate_qa.py:286) === 各 Symptom 记录数统计 ===
+2026-04-25 15:44:04.671 | INFO | (file:generate_qa.py:320) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:44:04.671 | INFO | (file:generate_qa.py:320) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:44:04.671 | INFO | (file:generate_qa.py:320) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:44:04.671 | INFO | (file:generate_qa.py:320) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:44:04.671 | INFO | (file:generate_qa.py:320) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:44:04.671 | INFO | (file:generate_qa.py:320) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:44:04.671 | WARNING | (file:generate_qa.py:340) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:44:04.671 | ERROR | (file:generate_qa.py:361) 处理数据时出错: 'latin-1' codec can't encode characters in position 0-3: ordinal not in range(256)
+2026-04-25 15:44:35.332 | INFO | (file:generate_qa.py:221) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:44:35.384 | INFO | (file:generate_qa.py:238) 读取到总记录数: 8
+2026-04-25 15:44:35.385 | INFO | (file:generate_qa.py:245) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:44:35.385 | INFO | (file:generate_qa.py:255) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:44:35.385 | INFO | (file:generate_qa.py:258) 共过滤掉 2 条数据。
+2026-04-25 15:44:35.386 | INFO | (file:generate_qa.py:286) === 各 Symptom 记录数统计 ===
+2026-04-25 15:44:35.388 | INFO | (file:generate_qa.py:319) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:44:35.388 | INFO | (file:generate_qa.py:319) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:44:35.388 | INFO | (file:generate_qa.py:319) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:44:35.389 | INFO | (file:generate_qa.py:319) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:44:35.389 | INFO | (file:generate_qa.py:319) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:44:35.389 | INFO | (file:generate_qa.py:319) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:44:35.389 | WARNING | (file:generate_qa.py:339) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:44:35.389 | ERROR | (file:generate_qa.py:360) 处理数据时出错: 'latin-1' codec can't encode characters in position 0-3: ordinal not in range(256)
+2026-04-25 15:44:49.903 | INFO | (file:generate_qa.py:221) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:44:49.949 | INFO | (file:generate_qa.py:238) 读取到总记录数: 8
+2026-04-25 15:44:49.949 | INFO | (file:generate_qa.py:245) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:44:49.950 | INFO | (file:generate_qa.py:255) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:44:49.950 | INFO | (file:generate_qa.py:258) 共过滤掉 2 条数据。
+2026-04-25 15:44:49.950 | INFO | (file:generate_qa.py:286) === 各 Symptom 记录数统计 ===
+2026-04-25 15:44:49.952 | INFO | (file:generate_qa.py:318) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:44:49.953 | INFO | (file:generate_qa.py:318) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:44:49.953 | INFO | (file:generate_qa.py:318) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:44:49.953 | INFO | (file:generate_qa.py:318) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:44:49.953 | INFO | (file:generate_qa.py:318) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:44:49.954 | INFO | (file:generate_qa.py:318) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:44:49.954 | WARNING | (file:generate_qa.py:338) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:44:49.954 | ERROR | (file:generate_qa.py:359) 处理数据时出错: 'latin-1' codec can't encode characters in position 0-3: ordinal not in range(256)
+2026-04-25 15:45:49.199 | INFO | (file:generate_qa.py:215) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:45:49.255 | INFO | (file:generate_qa.py:232) 读取到总记录数: 8
+2026-04-25 15:45:49.255 | INFO | (file:generate_qa.py:239) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:45:49.256 | INFO | (file:generate_qa.py:249) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:45:49.256 | INFO | (file:generate_qa.py:252) 共过滤掉 2 条数据。
+2026-04-25 15:45:49.256 | INFO | (file:generate_qa.py:280) === 各 Symptom 记录数统计 ===
+2026-04-25 15:45:49.261 | INFO | (file:generate_qa.py:312) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:45:49.263 | INFO | (file:generate_qa.py:312) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:45:49.263 | INFO | (file:generate_qa.py:312) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:45:49.263 | INFO | (file:generate_qa.py:312) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:45:49.263 | INFO | (file:generate_qa.py:312) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:45:49.263 | INFO | (file:generate_qa.py:312) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:45:49.263 | WARNING | (file:generate_qa.py:331) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:46:31.259 | INFO | (file:generate_qa.py:215) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:46:31.292 | INFO | (file:generate_qa.py:232) 读取到总记录数: 8
+2026-04-25 15:46:31.293 | INFO | (file:generate_qa.py:239) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:46:31.293 | INFO | (file:generate_qa.py:249) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:46:31.293 | INFO | (file:generate_qa.py:252) 共过滤掉 2 条数据。
+2026-04-25 15:46:31.294 | INFO | (file:generate_qa.py:280) === 各 Symptom 记录数统计 ===
+2026-04-25 15:46:31.296 | INFO | (file:generate_qa.py:312) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:46:31.297 | INFO | (file:generate_qa.py:312) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:46:31.297 | INFO | (file:generate_qa.py:312) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:46:31.297 | INFO | (file:generate_qa.py:312) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:46:31.297 | INFO | (file:generate_qa.py:312) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:46:31.297 | INFO | (file:generate_qa.py:312) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:46:31.297 | WARNING | (file:generate_qa.py:331) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:46:48.654 | INFO | (file:generate_qa.py:213) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:46:48.701 | INFO | (file:generate_qa.py:230) 读取到总记录数: 8
+2026-04-25 15:46:48.701 | INFO | (file:generate_qa.py:237) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:46:48.702 | INFO | (file:generate_qa.py:247) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:46:48.702 | INFO | (file:generate_qa.py:250) 共过滤掉 2 条数据。
+2026-04-25 15:46:48.702 | INFO | (file:generate_qa.py:278) === 各 Symptom 记录数统计 ===
+2026-04-25 15:46:48.704 | INFO | (file:generate_qa.py:310) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:46:48.704 | INFO | (file:generate_qa.py:310) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:46:48.704 | INFO | (file:generate_qa.py:310) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:46:48.704 | INFO | (file:generate_qa.py:310) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:46:48.704 | INFO | (file:generate_qa.py:310) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:46:48.704 | INFO | (file:generate_qa.py:310) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:46:48.704 | WARNING | (file:generate_qa.py:329) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 15:47:16.103 | INFO | (file:generate_qa.py:211) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 15:47:16.153 | INFO | (file:generate_qa.py:228) 读取到总记录数: 8
+2026-04-25 15:47:16.154 | INFO | (file:generate_qa.py:235) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 15:47:16.154 | INFO | (file:generate_qa.py:245) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 15:47:16.154 | INFO | (file:generate_qa.py:248) 共过滤掉 2 条数据。
+2026-04-25 15:47:16.154 | INFO | (file:generate_qa.py:276) === 各 Symptom 记录数统计 ===
+2026-04-25 15:47:16.157 | INFO | (file:generate_qa.py:308) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 15:47:16.157 | INFO | (file:generate_qa.py:308) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 15:47:16.157 | INFO | (file:generate_qa.py:308) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 15:47:16.157 | INFO | (file:generate_qa.py:308) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 15:47:16.157 | INFO | (file:generate_qa.py:308) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 15:47:16.157 | INFO | (file:generate_qa.py:308) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 15:47:16.157 | WARNING | (file:generate_qa.py:327) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。
+2026-04-25 16:16:58.652 | INFO | (file:generate_qa.py:211) 开始读取表: xxa_bomc_qa_non_vendor, 时间范围: 2026-04-01 至 2026-04-28
+2026-04-25 16:16:58.710 | INFO | (file:generate_qa.py:228) 读取到总记录数: 8
+2026-04-25 16:16:58.715 | INFO | (file:generate_qa.py:235) 过滤 symptom_detail='其他' 后剩余: 6
+2026-04-25 16:16:58.715 | INFO | (file:generate_qa.py:245) 过滤 branch_actions 特定值后剩余: 6
+2026-04-25 16:16:58.715 | INFO | (file:generate_qa.py:248) 共过滤掉 2 条数据。
+2026-04-25 16:16:58.719 | INFO | (file:generate_qa.py:276) === 各 Symptom 记录数统计 ===
+2026-04-25 16:16:58.723 | INFO | (file:generate_qa.py:308) 成功获取 symptom='其他' 的 1 条 QA 结果
+2026-04-25 16:16:58.724 | INFO | (file:generate_qa.py:308) 成功获取 symptom='包月费扣减不准确' 的 1 条 QA 结果
+2026-04-25 16:16:58.724 | INFO | (file:generate_qa.py:308) 成功获取 symptom='发票/专票打印问题' 的 1 条 QA 结果
+2026-04-25 16:16:58.724 | INFO | (file:generate_qa.py:308) 成功获取 symptom='受理单缺失' 的 1 条 QA 结果
+2026-04-25 16:16:58.724 | INFO | (file:generate_qa.py:308) 成功获取 symptom='商品订购问题（产品变更）' 的 1 条 QA 结果
+2026-04-25 16:16:58.724 | INFO | (file:generate_qa.py:308) 成功获取 symptom='账单详单查询/咨询' 的 1 条 QA 结果
+2026-04-25 16:16:58.724 | WARNING | (file:generate_qa.py:327) 未获取到任何 GBase 数据，未生成 gbase Excel 文件。

@@ -1,0 +1,863 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 小信智能体摘要提取
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: package
+  value:
+    plugin_unique_identifier: langgenius/openai_api_compatible:0.0.11@410445eba2fa0f693d26dea2c3b9ffe51ad0777e021146ff877af6098412efc7
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        sourceType: start
+        targetType: llm
+      id: 1761036702746-llm
+      selected: false
+      source: '1761036702746'
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1761036702746-source-17615369064440-target
+      selected: false
+      source: '1761036702746'
+      sourceHandle: source
+      target: '17615369064440'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1761036702746-source-17615455921370-target
+      selected: false
+      source: '1761036702746'
+      sourceHandle: source
+      target: '17615455921370'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1761036702746-source-17615455974300-target
+      selected: false
+      source: '1761036702746'
+      sourceHandle: source
+      target: '17615455974300'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1761036702746-source-17624956528130-target
+      selected: false
+      source: '1761036702746'
+      sourceHandle: source
+      target: '17624956528130'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1761036702746-source-1764728134018-target
+      source: '1761036702746'
+      sourceHandle: source
+      target: '1764728134018'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: llm-source-1765762633301-target
+      source: llm
+      sourceHandle: source
+      target: '1765762633301'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 17610367818900-source-1765762633301-target
+      selected: false
+      source: '17610367818900'
+      sourceHandle: source
+      target: '1765762633301'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 17624956528130-source-1765762633301-target
+      source: '17624956528130'
+      sourceHandle: source
+      target: '1765762633301'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 17615369064440-source-1765762633301-target
+      source: '17615369064440'
+      sourceHandle: source
+      target: '1765762633301'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 17615455921370-source-1765762633301-target
+      source: '17615455921370'
+      sourceHandle: source
+      target: '1765762633301'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 17615455974300-source-1765762633301-target
+      selected: false
+      source: '17615455974300'
+      sourceHandle: source
+      target: '1765762633301'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+      id: 1765762633301-source-1765779422825-target
+      source: '1765762633301'
+      sourceHandle: source
+      target: '1765779422825'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 1764728134018-source-1767664130025-target
+      source: '1764728134018'
+      sourceHandle: source
+      target: '1767664130025'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: 1767664130025-source-1767665735693-target
+      source: '1767664130025'
+      sourceHandle: source
+      target: '1767665735693'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 1767665735693-source-1767667696452-target
+      source: '1767665735693'
+      sourceHandle: source
+      target: '1767667696452'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: 1767667696452-source-17610367818900-target
+      source: '1767667696452'
+      sourceHandle: source
+      target: '17610367818900'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 53
+      id: '1761036702746'
+      position:
+        x: -139.7789021440077
+        y: 673.0548741596826
+      positionAbsolute:
+        x: -139.7789021440077
+        y: 673.0548741596826
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: bb7b79cc-f88f-4648-9dea-e869e3fb572c
+          role: system
+          text: "你是一名专业的「设备提取助手」。\n\n任务：从输入文本中准确识别“出现故障的物理设备类型”。\n\n核心原则：\n1.白名单优先：优先匹配【标准设备列表】中的词汇。\n\
+            2.宁缺毋滥：如果没有明确的硬件设备损坏描述，必须输出“无”，严禁强行提取\n3.输出结果必须严格限定在以下预定义的设备类别中，不可新增或自行扩展\n\
+            ---\n## 标准设备列表\n智能手机\n老年机\n手表\n儿童手表\n电脑\n云电脑终端\n座机/话机\n光猫\nONU设备\n宽带ONT\n\
+            路由器\n智能网关\n机顶盒/OTT盒子\n电视机\n摄像头\n安防设备\n监控设备\n智能控制器\nSIM卡\nUSIM卡\n上网卡\n\
+            流量卡\n通信模组\n线盒\n光纤入户设备\n全屋WiFi设备\n智能组网设备\nPOS机\n物联网卡\n物联网终端\n警务通终端\n车务通终端\n\
+            遥控器\n云PAD\n云手机\n无\n---\n# 识别规则\n1. 若输入中出现多个设备：\n   - 优先选择被描述为有故障、异常、无法使用、损坏的那个\n\
+            2. 若未明确涉及上述任一类别，则输出：“无”。\n3.必须基于输入内容中**显式提到完整设备名称**的词汇进行提取，不能推测、猜测或联想设备类型。\n\
+            ---\n## 输出要求\n- 只输出一个设备类型或“无”。\n- 不要包含解释、理由、标点或额外内容。\n---\n\n## 输入\n{{#sys.query#}}\n"
+        selected: false
+        title: 设备
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: llm
+      position:
+        x: 371.3819891065856
+        y: 441.21383966614974
+      positionAbsolute:
+        x: 371.3819891065856
+        y: 441.21383966614974
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: bb7b79cc-f88f-4648-9dea-e869e3fb572c
+          role: system
+          text: "你是一名专业的「报障信息提取助手」。\n任务：从用户报障文本中准确识别提到的故障类别。\n\n优先在以下预定义的类别中选择输入中提到的故障类别：\n\
+            {{#1767667696452.result#}}\n\n---\n# 识别规则\n1. 若出现多个候选类别：\n   - 选择最有可能与最相关的那一类别\n\
+            2. 若未明确涉及上述任一类别， 自行总结：生成一个高度概括的短语（4-8个字），格式需模仿标准类别，如果没有提到故障，输出“无”\n---\n\
+            # 输出要求\n- 只输出一个条目\n- 不要包含解释、理由或标点符号\n---\n\n# 输入\n用户报障文本如下：\n{{#sys.query#}}\n\
+            /no_think"
+        selected: false
+        title: 故障现象
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '17610367818900'
+      position:
+        x: 788.1775199785047
+        y: 453.20363750126637
+      positionAbsolute:
+        x: 788.1775199785047
+        y: 453.20363750126637
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: bb7b79cc-f88f-4648-9dea-e869e3fb572c
+          role: system
+          text: '你是一名专业的「报障信息提取助手」。
+
+            你的任务是从输入文本中提炼造成问题的直接或间接原因，仅提炼文本中明确提及的部分。
+
+
+            ## 注意事项：
+
+            1.提炼时省略金额、日期、时间、流水号、手机号等具体数字和细节。
+
+            2.若没有提及，则输出 "无"。
+
+
+            ## 输出：
+
+            直接输出故障原因，不要包含注释、解释、故障现象等内容。
+
+
+            ## 输入：
+
+            {{#sys.query#}}
+
+            /no_think'
+        selected: false
+        title: 故障原因
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '17615369064440'
+      position:
+        x: 371.3819891065856
+        y: 770.0791884968475
+      positionAbsolute:
+        x: 371.3819891065856
+        y: 770.0791884968475
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: bb7b79cc-f88f-4648-9dea-e869e3fb572c
+          role: system
+          text: '你是一名专业的「报障信息提取助手」。
+
+            你的任务从“分公司处理意见”中提炼operation(已做过的具体动作)、result(动作对应结果)和suggestion(后续建议或请求)。
+
+
+            ## 注意事项：
+
+            1.动作、结果、建议要语义分离，不得互相混杂。
+
+            1.提炼时省略金额、日期、时间、流水号、手机号等具体数字和细节。
+
+            3.若某项信息缺失，该字段可以填 "无"
+
+            4.若出现多项操作，请分条输出为数组元素。
+
+            5.严禁从”厂商处理意见“中提炼内容
+
+
+            ## 输出：
+
+            输出格式如下所示，不要包含注释、解释等内容。
+
+            [{"operation": "xx", "result": "xx", "suggestion": "xx"},{"operation":
+            "xx", "result": "xx","suggestion": "xx"}]
+
+
+            ## 输入：
+
+            {{#sys.query#}}
+
+            /no_think'
+        selected: false
+        title: 分公司操作
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '17615455921370'
+      position:
+        x: 371.3819891065856
+        y: 925.5080912592738
+      positionAbsolute:
+        x: 371.3819891065856
+        y: 925.5080912592738
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: bb7b79cc-f88f-4648-9dea-e869e3fb572c
+          role: system
+          text: '你是一名专业的「报障信息提取助手」，你的核心能力是结合【分公司处理意见】和【厂商处理意见】的上下文 ，准确提炼工单的处理细节
+
+
+            **知识点**：“省公司”即为“厂商”，分公司向省公司提出的请求，即为厂商需要执行的操作
+
+            ## 提炼信息：
+
+            1.operation：已做过的操作，需要回溯、结合【分公司处理意见】，将“处理”具体化为分公司请求的具体动作
+
+            2.result：提取厂商操作后的对应结果
+
+            3.suggestion：提取厂商的后续建议或请求
+
+
+            ## 注意事项：
+
+            1.动作、结果、建议要语义分离，不得互相混杂。
+
+            2.提炼时自动省略具体的金额、日期、时间、流水号、手机号等数字和细节。
+
+            3.若某项信息缺失，该字段可以填 "无"
+
+            4.如包含多个不相关的独立动作，请作为数组中的多个元素输出。
+
+            5.如果输入中动作与结果写在一起，模型需根据语义将动作与结果拆分
+
+
+            ## 输出：
+
+            输出格式如下所示，不要包含注释、解释等内容。
+
+            [{"operation": "xx", "result": "xx", "suggestion": "xx"},{"operation":
+            "xx", "result": "xx","suggestion": "xx"}]
+
+
+            ## 输入：
+
+            {{#sys.query#}}
+
+            /no_think'
+        selected: false
+        title: 厂商操作
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '17615455974300'
+      position:
+        x: 371.3819891065856
+        y: 1096.7670076692818
+      positionAbsolute:
+        x: 371.3819891065856
+        y: 1096.7670076692818
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: bb7b79cc-f88f-4648-9dea-e869e3fb572c
+          role: system
+          text: '你是一名专业的「报障信息提取助手」。
+
+            你的任务是从输入文本中提炼用户或系统遇到的故障报错或提示。
+
+
+            ## 注意事项：
+
+            1.提炼时省略金额、日期、时间、流水号、手机号等具体数字和细节。
+
+            2.若没有提及，则输出 "无"。
+
+
+            ## 输出：
+
+            直接输出故障现象，不要包含注释、解释、故障原因等内容。
+
+
+            ## 输入：
+
+            {{#sys.query#}}
+
+            /no_think'
+        selected: false
+        title: 故障详情
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '17624956528130'
+      position:
+        x: 378.47618013964757
+        y: 601.8218482932035
+      positionAbsolute:
+        x: 378.47618013964757
+        y: 601.8218482932035
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: 2bdbc86d-c5bd-477e-9707-b55a6f9adde2
+          role: system
+          text: "你是一名专业的「报障信息信息类型识别助手」。\n\n任务：从用户报障文本中准确识别提到的业务。\n\n输出结果必须严格限定在以下预定义的业务类别中，不可新增或自行扩展：\n\
+            宽带业务（如宽带办理与维护、宽带计费、宽带上网、宽带带宽）\n业务受理与查询（如开户销户管理、产品与套餐、缴费与账单）\n系统与权限管理（如权限与工号、系统问题与资源）\n\
+            网络与终端（如网络问题、终端与设备）\n营销与活动（如营销与活动管理、统计与酬金）\n集团与家庭业务（如集团业务、家庭业务）,\n新兴业务与云服务（如云与智能、移动支付与积分）,\n\
+            其他问题（如客户投诉、技术支持）\n---\n\n# 识别规则\n1. 若出现多个候选业务：\n   - 优先选择与宽带业务\n   - 若无宽带业务，选择最有可能与最相关的那一业务\n\
+            2. 若未明确涉及上述任一类别，则输出：“其他问题”。\n\n---\n\n# 输出要求\n- 只输出一个条目\n- 不要包含解释、理由或标点符号\n\
+            \n---\n\n# 输入\n\n用户报障文本如下：\n{{#sys.query#}}\n\n/no_think"
+        selected: false
+        title: 业务
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '1764728134018'
+      position:
+        x: 365.2460345124424
+        y: 289.9581794510744
+      positionAbsolute:
+        x: 365.2460345124424
+        y: 289.9581794510744
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\nimport re\n\ndef main(device, business, symptom, symptom_detail,\
+          \ cause, branch_actions, vendor_actions, subclass):\n    def process(text):\n\
+          \        cleaned = re.sub(r'[\\r\\n]+', '', text)\n        cleaned = re.sub(r\"\
+          <think>.*?</think>\", \"\", cleaned, flags=re.DOTALL).replace(\" \", \"\"\
+          )\n        \n        return cleaned\n    data = {\n        \"device\": process(device),\n\
+          \        \"business\": process(business),\n        \"subclass\": process(subclass),\n\
+          \        \"symptom\": process(symptom),\n        \"symptom_detail\": process(symptom_detail),\n\
+          \        \"cause\": process(cause),\n        \"branch_actions\": process(branch_actions),\n\
+          \        \"vendor_actions\": process(vendor_actions)\n    }\n    return\
+          \ {\n        \"result\": json.dumps(data, ensure_ascii=False)\n    }"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 代码执行
+        type: code
+        variables:
+        - value_selector:
+          - llm
+          - text
+          variable: device
+        - value_selector:
+          - '1764728134018'
+          - text
+          variable: business
+        - value_selector:
+          - '17610367818900'
+          - text
+          variable: symptom
+        - value_selector:
+          - '17624956528130'
+          - text
+          variable: symptom_detail
+        - value_selector:
+          - '17615369064440'
+          - text
+          variable: cause
+        - value_selector:
+          - '17615455921370'
+          - text
+          variable: branch_actions
+        - value_selector:
+          - '17615455974300'
+          - text
+          variable: vendor_actions
+        - value_selector:
+          - '1767665735693'
+          - text
+          variable: subclass
+      height: 53
+      id: '1765762633301'
+      position:
+        x: 801.405688884881
+        y: 632.5192918878585
+      positionAbsolute:
+        x: 801.405688884881
+        y: 632.5192918878585
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1765762633301.result#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 104
+      id: '1765779422825'
+      position:
+        x: 1263.535282056122
+        y: 644.7929762755924
+      positionAbsolute:
+        x: 1263.535282056122
+        y: 644.7929762755924
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import re\ndef main(arg1: str) -> dict:\n    arg1 = re.sub(r\"<think>.*?</think>\"\
+          , \"\", arg1, flags=re.DOTALL).replace(\" \", \"\").replace(\"\\n\", \"\"\
+          )\n    mapping = {\n    \"宽带业务\": \"宽带办理与维护、宽带计费、宽带上网、宽带带宽\",\n    \"业务受理与查询\"\
+          : \"开户销户管理、产品与套餐、缴费与账单\",\n    \"系统与权限管理\": \"权限与工号、系统问题与资源\",\n    \"网络与终端\"\
+          : \"网络问题、终端与设备\",\n    \"营销与活动\": \"营销与活动管理、统计与酬金\",\n    \"集团与家庭业务\": \"\
+          集团业务、家庭业务\",\n    \"新兴业务与云服务\": \"云与智能、移动支付与积分\",\n    \"其他问题\": \"客户投诉、技术支持\"\
+          ,\n    # 焦点问题\n    \"宽带办理与维护\": \"宽带开通/取消、宽带竣工、宽带移机、跨省宽带、宽带换号、宽带丢单问题、宽带停复机、宽带/魔百和无法使用、宽带带宽查询调整、宽带保证金收取退还\"\
+          ,\n    \"宽带计费\": \"宽带/和TV计费\",\n    \"开户销户管理\": \"个人开户/销户问题、集团开户销户问题、销户结帐问题、退费登记问题、实名制登记、一证多名、实名制预占解除\"\
+          ,\n    \"产品与套餐\": \"商品订购问题（产品变更）、业务回退问题、各类包月量查询疑义、包月套餐内优惠未享受、产品失效时间变更问题、家庭网短号问题、集团彩铃无法使用、协议消费补收问题、业务受理查询、订单查询、订单跟踪、批量业务问题\"\
+          ,\n    \"缴费与账单\": \"交费问题、账单详单查询/咨询、退预交款问题、充值卡问题、发票/专票打印问题、包月费扣减不准确、固定费计算有误、银行代收缴费不成功、营业前台缴费不成功、支付宝缴费不成功、微信缴费不成功、商城缴费不成功\"\
+          ,\n    \"权限与工号\": \"工号解锁、工号有效期咨询、受理工号查询、操作员工作组权限管理、渠道工号解锁、客户经理权限问题\",\n\
+          \    \"系统问题与资源\": \"BBOSS上传不成功、BBOSS未归档、资源调拨、SIM卡归属地查询、短信历史数据查询、资金账户问题、ESOP问题、CMOP问题、无主话单、在途订单、资源关系维护、工作流调度\"\
+          ,\n    \"网络问题\": \"4G服务/GPRS无法使用、GPRS流量计算有疑义咨询、来电显示/彩铃/来电提醒无法使用、国际类收费疑义、短信上下行异常、语音计费问题、短/彩信计费问题、VOLTE扣费疑义、VOLTE指令问题、专线问题（跨省/本地）\"\
+          ,\n    \"终端与设备\": \"终端销售、补卡问题、补卡后无法使用、机顶盒资源回收、魔百盒开户/销户问题、魔百盒竣工问题、语音遥控器保证金退还\"\
+          ,\n    \"营销与活动管理\": \"营销活动无法办理、开通/取消营销活动、外呼营销问题、短信营销问题、智能营销问题、订单撤销\",\n\
+          \    \"统计与酬金\": \"营业收入统计不符、酬金计算发放问题、其他统计报表问题、营收日期/工号调整\",\n    \"集团业务\"\
+          : \"集团成员管理问题、集团黑白名单管理、集团客户统一视图、集团产品变更/改产品/资料问题、集团短彩信、集团短号不能使用\",\n    \"\
+          家庭业务\": \"家庭网成员管理、家庭网开户销户问题、全省/全国亲情网开通取消问题、家庭网改资料问题、家庭网/vpmn/集团V网计费疑义\"\
+          ,\n    \"云与智能\": \"云电脑、云视讯、云MAS业务（端到端）、高精度定位、视频AI、和对讲、OneNet\",\n    \"\
+          移动支付与积分\": \"和包业务咨询、电子券回退、电子券发放、电子券余额查询、店员积分问题、积分受理查询\",\n    \"客户投诉\":\
+          \ \"欠费未停机、有余额被停机、欠费未销帐查询、号码使用空号、营业员受理错误、操作员缴错账号\",\n    \"技术支持\": \"各类日志查询、改密码/密码重置、小区局数据问题、短信查询结果有疑义\"\
+          ,\n    }\n\n    result = mapping.get(arg1, \"\")\n\n    # 将列表转换为字符串供下一个\
+          \ LLM 使用\n    return {\n        \"result\": result\n    }"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 映射
+        type: code
+        variables:
+        - value_selector:
+          - '1764728134018'
+          - text
+          variable: arg1
+      height: 53
+      id: '1767664130025'
+      position:
+        x: 707.7681335187754
+        y: 295.010568006109
+      positionAbsolute:
+        x: 707.7681335187754
+        y: 295.010568006109
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {}
+          mode: chat
+          name: CXY-Qwen3-32B
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_template:
+        - id: feb43a59-084a-44f9-82bc-497d69cea346
+          role: system
+          text: "你是一名专业的「报障信息提取助手」。\n任务：从用户报障文本中准确识别提到的故障类别。\n\n输出结果必须严格限定在以下预定义的故障类别中，不可新增或自行扩展：\n\
+            {{#1767664130025.result#}}\n\n---\n# 识别规则\n1. 若出现多个候选类别：\n   - 选择最有可能与最相关的那一类别\n\
+            2. 若未明确涉及上述任一类别，则输出：“无”。\n---\n# 输出要求\n- 只输出一个条目\n- 不要包含解释、理由或标点符号\n---\n\
+            \n# 输入\n用户报障文本如下：\n{{#sys.query#}}\n/no_think"
+        selected: false
+        title: 二级分类
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '1767665735693'
+      position:
+        x: 1041.0824648489836
+        y: 284.83300008142993
+      positionAbsolute:
+        x: 1041.0824648489836
+        y: 284.83300008142993
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import re\ndef main(arg1: str) -> dict:\n    arg1 = re.sub(r\"<think>.*?</think>\"\
+          , \"\", arg1, flags=re.DOTALL).replace(\" \", \"\").replace(\"\\n\", \"\"\
+          )\n    mapping = {\n    \"宽带业务\": \"宽带办理与维护、宽带计费、宽带上网、宽带带宽\",\n    \"业务受理与查询\"\
+          : \"开户销户管理、产品与套餐、缴费与账单\",\n    \"系统与权限管理\": \"权限与工号、系统问题与资源\",\n    \"网络与终端\"\
+          : \"网络问题、终端与设备\",\n    \"营销与活动\": \"营销与活动管理、统计与酬金\",\n    \"集团与家庭业务\": \"\
+          集团业务、家庭业务\",\n    \"新兴业务与云服务\": \"云与智能、移动支付与积分\",\n    \"其他问题\": \"客户投诉、技术支持\"\
+          ,\n    # 焦点问题\n    \"宽带办理与维护\": \"宽带开通/取消、宽带竣工、宽带移机、跨省宽带、宽带换号、宽带丢单问题、宽带停复机、宽带/魔百和无法使用、宽带带宽查询调整、宽带保证金收取退还\"\
+          ,\n    \"宽带计费\": \"宽带/和TV计费\",\n    \"开户销户管理\": \"个人开户/销户问题、集团开户销户问题、销户结帐问题、退费登记问题、实名制登记、一证多名、实名制预占解除\"\
+          ,\n    \"产品与套餐\": \"商品订购问题（产品变更）、业务回退问题、各类包月量查询疑义、包月套餐内优惠未享受、产品失效时间变更问题、家庭网短号问题、集团彩铃无法使用、协议消费补收问题、业务受理查询、订单查询、订单跟踪、批量业务问题\"\
+          ,\n    \"缴费与账单\": \"交费问题、账单详单查询/咨询、退预交款问题、充值卡问题、发票/专票打印问题、包月费扣减不准确、固定费计算有误、银行代收缴费不成功、营业前台缴费不成功、支付宝缴费不成功、微信缴费不成功、商城缴费不成功\"\
+          ,\n    \"权限与工号\": \"工号解锁、工号有效期咨询、受理工号查询、操作员工作组权限管理、渠道工号解锁、客户经理权限问题\",\n\
+          \    \"系统问题与资源\": \"BBOSS上传不成功、BBOSS未归档、资源调拨、SIM卡归属地查询、短信历史数据查询、资金账户问题、ESOP问题、CMOP问题、无主话单、在途订单、资源关系维护、工作流调度\"\
+          ,\n    \"网络问题\": \"4G服务/GPRS无法使用、GPRS流量计算有疑义咨询、来电显示/彩铃/来电提醒无法使用、国际类收费疑义、短信上下行异常、语音计费问题、短/彩信计费问题、VOLTE扣费疑义、VOLTE指令问题、专线问题（跨省/本地）\"\
+          ,\n    \"终端与设备\": \"终端销售、补卡问题、补卡后无法使用、机顶盒资源回收、魔百盒开户/销户问题、魔百盒竣工问题、语音遥控器保证金退还\"\
+          ,\n    \"营销与活动管理\": \"营销活动无法办理、开通/取消营销活动、外呼营销问题、短信营销问题、智能营销问题、订单撤销\",\n\
+          \    \"统计与酬金\": \"营业收入统计不符、酬金计算发放问题、其他统计报表问题、营收日期/工号调整\",\n    \"集团业务\"\
+          : \"集团成员管理问题、集团黑白名单管理、集团客户统一视图、集团产品变更/改产品/资料问题、集团短彩信、集团短号不能使用\",\n    \"\
+          家庭业务\": \"家庭网成员管理、家庭网开户销户问题、全省/全国亲情网开通取消问题、家庭网改资料问题、家庭网/vpmn/集团V网计费疑义\"\
+          ,\n    \"云与智能\": \"云电脑、云视讯、云MAS业务（端到端）、高精度定位、视频AI、和对讲、OneNet\",\n    \"\
+          移动支付与积分\": \"和包业务咨询、电子券回退、电子券发放、电子券余额查询、店员积分问题、积分受理查询\",\n    \"客户投诉\":\
+          \ \"欠费未停机、有余额被停机、欠费未销帐查询、号码使用空号、营业员受理错误、操作员缴错账号\",\n    \"技术支持\": \"各类日志查询、改密码/密码重置、小区局数据问题、短信查询结果有疑义\"\
+          ,\n    }\n\n    result = mapping.get(arg1, \"\")\n\n    # 将列表转换为字符串供下一个\
+          \ LLM 使用\n    return {\n        \"result\": result\n    }"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 映射2
+        type: code
+        variables:
+        - value_selector:
+          - '1767665735693'
+          - text
+          variable: arg1
+      height: 53
+      id: '1767667696452'
+      position:
+        x: 1380.5700780563175
+        y: 320.7288212747797
+      positionAbsolute:
+        x: 1380.5700780563175
+        y: 320.7288212747797
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -194.75499821913536
+      y: -207.29212816503662
+      zoom: 0.7917047464637391
