@@ -9,8 +9,8 @@ import json
 import pandas as pd
 import requests
 
-from xiaoxin.config import BACKEND_API_URL
-from xiaoxin.logging_setup import logger
+from xiaoxin_work_order.config import BACKEND_API_URL
+from xiaoxin_work_order.logging_setup import logger
 
 
 def fetch_data_from_api(start_time: str, end_time: str) -> pd.DataFrame:

@@ -1,6 +1,6 @@
 """流水线一：取数 → 8 字段提取 → 分流入库。
 
-本文件只做编排与数据整形；所有数据库写入交给 xiaoxin.db.save_issue_results()。
+本文件只做编排与数据整形；所有数据库写入交给 xiaoxin_work_order.db.save_issue_results()。
 """
 import datetime
 import json
@@ -12,18 +12,18 @@ from typing import Any, Dict, List
 import pandas as pd
 from tqdm.auto import tqdm
 
-from xiaoxin.api.backend import fetch_data_from_api
-from xiaoxin.common import dedup_device_value, is_valid_content, to_text
-from xiaoxin.config import (
+from xiaoxin_work_order.api.backend import fetch_data_from_api
+from xiaoxin_work_order.common import dedup_device_value, is_valid_content, to_text
+from xiaoxin_work_order.config import (
     BATCH_DAY_SLEEP,
     ERROR_LOG_NAME,
     INFO_LOG_NAME,
     MAX_WORKERS,
     POST_CALL_SLEEP,
 )
-from xiaoxin.db import save_issue_results
-from xiaoxin.extraction.workflow import run_extraction
-from xiaoxin.logging_setup import logger, setup_logging
+from xiaoxin_work_order.db import save_issue_results
+from xiaoxin_work_order.extraction.workflow import run_extraction
+from xiaoxin_work_order.logging_setup import logger, setup_logging
 
 setup_logging(INFO_LOG_NAME, ERROR_LOG_NAME)
 
@@ -126,14 +126,28 @@ def parallel_process(texts: List[str]) -> List[dict]:
 
 
 # ================= 业务编排 =================
-def run_process_for_date(target_date_str: str):
-    """执行指定日期（YYYY-MM-DD）的取数 → 提取 → 分流入库。"""
+def fetch_for_date(target_date_str: str) -> pd.DataFrame:
+    """仅取数（轻量探测用），不跑模型、不写库。
+
+    时间窗固定为该日期的 00:00:00–23:59:59，与入库流程完全一致，
+    保证「探测到的快照」和「最终入库的快照」口径相同。
+    """
+    start_time_str = f"{target_date_str} 00:00:00"
+    end_time_str = f"{target_date_str} 23:59:59"
+    return fetch_data_from_api(start_time_str, end_time_str)
+
+
+def run_process_for_date(target_date_str: str, df=None):
+    """执行指定日期（YYYY-MM-DD）的取数 → 提取 → 分流入库。
+
+    df 不为 None 时直接使用已确认稳定的数据帧（由就绪探测传入），
+    避免二次取数又拿到一份不同快照；为 None 时保持原有自行取数行为。
+    """
     try:
-        start_time_str = f"{target_date_str} 00:00:00"
-        end_time_str = f"{target_date_str} 23:59:59"
         logger.info(f"开始执行任务，处理日期: {target_date_str}")
 
-        df = fetch_data_from_api(start_time_str, end_time_str)
+        if df is None:
+            df = fetch_for_date(target_date_str)
         if df.empty:
             print(f"[{target_date_str}] 无数据需处理。")
             return
@@ -175,7 +189,7 @@ def run_process_for_date(target_date_str: str):
         if not current_task_oids:
             return
 
-        # 数据库读写统一收口到 xiaoxin.db
+        # 数据库读写统一收口到 xiaoxin_work_order.db
         save_issue_results(final_df)
 
         print(f"✅ [{target_date_str}] 完成！调用量: {total_calls}")

@@ -6,9 +6,9 @@
 import pandas as pd
 from sqlalchemy import bindparam, text
 
-from xiaoxin.common import is_valid_content
-from xiaoxin.db.connections import app_engine
-from xiaoxin.logging_setup import logger
+from xiaoxin_work_order.common import is_valid_content
+from xiaoxin_work_order.db.connections import app_engine
+from xiaoxin_work_order.logging_setup import logger
 
 TABLE_ISSUES = "xxa_issues_records"            # 焦点问题记录
 TABLE_WORD_CLOUD = "xxa_complaint_word_cloud"  # 投诉词云

@@ -3,7 +3,7 @@
 所有连接信息、运行参数集中在此，支持用同名环境变量覆盖，便于 docker / 生产环境外置密钥。
 若线上 DB 端口/地址不同，直接设环境变量即可，不必改代码。
 
-本文件位于 xiaoxin/ 包内，PROJECT_PATH 取上一级（仓库根），
+本文件位于 xiaoxin_work_order/ 包内，PROJECT_PATH 取上一级（仓库根），
 .env / prompts / logs / data 均落在仓库根。
 """
 import os
@@ -15,8 +15,8 @@ PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_LOG_PATH = os.path.join(PROJECT_PATH, "logs")
 INFO_LOG_PATH = os.path.join(BASE_LOG_PATH, "INFO")
 ERROR_LOG_PATH = os.path.join(BASE_LOG_PATH, "ERROR")
-INFO_LOG_NAME = "xiaoxin-info"
-ERROR_LOG_NAME = "xiaoxin-error"
+INFO_LOG_NAME = "xiaoxin_work_order-info"
+ERROR_LOG_NAME = "xiaoxin_work_order-error"
 GENERATE_QA_INFO_LOG_NAME = "generate_qa_knowledge-info"
 GENERATE_QA_ERROR_LOG_NAME = "generate_qa_knowledge-error"
 
@@ -119,6 +119,16 @@ FIELD_WORKERS = _i("FIELD_WORKERS", 6)          # 单条工单 8 字段提取时
 POST_CALL_SLEEP = _f("POST_CALL_SLEEP", 5)      # 每条模型调用后的固定停顿
 BATCH_DAY_SLEEP = _f("BATCH_DAY_SLEEP", 2)      # 批量任务每天之间的停顿
 SCHEDULE_TIME = _s("SCHEDULE_TIME", "01:00")    # 每日定时执行时间
+
+# ================= 每日批次：就绪探测 / 当日重试 =================
+# 上游库可能「还没准备好」（返回空）或「正在补写」（只拿到不完整快照）。
+# 探测只取数不跑模型；连续两次指纹一致才入库；重试严格限制在运行日当天。
+RETRY_INTERVAL_HOURS = _f("RETRY_INTERVAL_HOURS", 1.0)            # 空 / 未稳定后的重试间隔
+STABILITY_RECHECK_MINUTES = _f("STABILITY_RECHECK_MINUTES", 10.0)  # 首次拿到非空数据后的快速复核；设 0 则统一按小时重试
+RETRY_WINDOW_END = _s("RETRY_WINDOW_END", "23:00")                 # 当天最晚发起探测的时刻 HH:MM
+MAX_RETRY_ATTEMPTS = _i("MAX_RETRY_ATTEMPTS", 24)                  # 单个日期批次的探测次数上限
+SCHEDULER_POLL_SECONDS = _i("SCHEDULER_POLL_SECONDS", 60)          # 主循环轮询间隔（不 sleep 阻塞）
+
 PROMPTS_DIR = os.path.join(PROJECT_PATH, "prompts")
 DATA_DIR = os.path.join(PROJECT_PATH, "data")
 

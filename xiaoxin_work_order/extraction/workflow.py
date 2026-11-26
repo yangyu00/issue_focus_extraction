@@ -1,8 +1,8 @@
-"""「小信智能体摘要提取」工作流的本地直连实现。
+"""「小信工单摘要提取」工作流的本地直连实现。
 
 调用结构：
     6 个互不依赖的字段（device / business / cause / branch_actions /
-    vendor_actions / symptom_detail）由 xiaoxin.llm.client.chat() 并发调用；
+    vendor_actions / symptom_detail）由 xiaoxin_work_order.llm.client.chat() 并发调用；
     业务 → MAPPING → 二级分类 → MAPPING → 故障现象串行；
     全部结果经 clean_field() 清洗后，按 OUTPUT_KEYS 顺序组装 8 字段 JSON 字符串返回。
 
@@ -12,11 +12,11 @@ import json
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from xiaoxin.config import FIELD_WORKERS, LLM_MODEL
-from xiaoxin.llm.client import chat
-from xiaoxin.llm.mappings import MAPPING
-from xiaoxin.llm.prompt_loader import load_prompt
-from xiaoxin.logging_setup import logger
+from xiaoxin_work_order.config import FIELD_WORKERS, LLM_MODEL
+from xiaoxin_work_order.llm.client import chat
+from xiaoxin_work_order.llm.mappings import MAPPING
+from xiaoxin_work_order.llm.prompt_loader import load_prompt
+from xiaoxin_work_order.logging_setup import logger
 
 # 彼此无依赖、可并发的 6 个字段
 PARALLEL_FIELDS = (

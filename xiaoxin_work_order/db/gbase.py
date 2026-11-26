@@ -3,8 +3,8 @@
 用于 QA 生成时按 task_oid 补齐「报障标题 / 报障内容 / 分公司处理意见」，
 以及 --enrich-excel 手动模式反查明细。
 """
-from xiaoxin.db.connections import gbase_connection
-from xiaoxin.logging_setup import logger
+from xiaoxin_work_order.db.connections import gbase_connection
+from xiaoxin_work_order.logging_setup import logger
 
 
 def query_gbase_by_task_oids(task_oid_list: list) -> list:

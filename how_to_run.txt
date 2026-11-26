@@ -1,0 +1,147 @@
+run.sh 使用说明
+================
+
+作用
+----
+用 docker run 启动「小信工单摘要提取」，不使用 docker compose。
+脚本把镜像名、容器名、整目录挂载、重启策略固化在一处，避免每次手敲长命令：
+不带参数启动常驻服务，带参数则跑一次性任务。
+
+★ 整目录挂载：整个项目挂到容器 /app，宿主机改 .env / prompts / 代码后，
+  docker restart 容器即生效，不用重新 build 镜像。详见下方「挂载与配置」。
+★ 非 root 运行：容器以宿主机当前用户的 uid/gid 启动，写出的日志/Excel
+  属主就是你本人，不用 sudo 就能改删。详见下方「非 root 与文件属主」。
+
+前置条件
+--------
+1. 已安装并可运行 docker（当前用户有权限执行 docker 命令）。
+2. 仓库根目录存在 .env（可 cp .env.example .env 后按实际环境填写）。
+3. 首次使用先构建镜像（脚本不会自动构建）：
+       docker build -t xiaoxin_work_order:v1 .
+   如需换镜像名/标签，用 IMAGE 环境变量覆盖，例如 IMAGE=myimg:v2 ./run.sh
+
+常用用法（在仓库根目录执行）
+----------------------------
+1) 启动常驻每日调度服务（启动时登记「昨天」，之后每天 01:00 登记「昨天」）：
+       ./run.sh
+   查看日志：
+       docker logs -f xiaoxin_work_order_qa
+   停止 / 删除容器：
+       docker stop xiaoxin_work_order_qa
+       docker rm -f xiaoxin_work_order_qa
+   注意：同名容器已存在时脚本会报错退出，不会覆盖；重建前先删除旧容器。
+
+   改配置后让新值生效（关键）：
+       # 1. 宿主机直接编辑项目里的 .env / prompts/*.txt / *.py
+       vim .env
+       # 2. 重启容器即可，不需要 docker build、不需要 docker rm
+       docker restart xiaoxin_work_order_qa
+       # 3. 确认已生效
+       docker logs --tail 30 xiaoxin_work_order_qa
+   原理：bind mount 让 /app 下的文件实时跟随宿主机变化；restart 会重新执行
+   CMD（全新 python 进程），config.py 启动时重新读取 /app/.env。
+   改 requirements.txt 例外：依赖是在 build 镜像时装进镜像层的，必须重新
+   docker build 后再重建容器。
+
+   ⚠ 从旧版升级（必须做一次）：旧容器是 root 运行且挂载/环境变量「创建时固化」，
+   要先重建、并把旧 root 生成的文件改成自己的属主：
+       docker rm -f xiaoxin_work_order_qa
+       sudo chown -R "$(id -u):$(id -g)" logs data    # 旧日志/Excel 是 root 的
+       ./run.sh
+   run.sh 启动前会自检：目录不可写、或 logs/data 里还有 root 属主文件，都会
+   直接报错并给出修复命令，不会让容器起来后静默写失败。
+   之后改配置就只用 docker restart 了。
+
+   ★ 就绪探测与当日重试（默认已开启）
+     01:00 触发时只登记批次，不立刻跑模型。调度器每次只做一次轻量取数：
+       · 返回空        -> 记 INFO，隔 1 小时再试，直到数据出现
+       · 拿到非空数据  -> 隔 10 分钟复核一次
+       · 两次指纹一致  -> 判定「数据不再增长」，才用这份数据跑模型入库
+       · 仍在增长/变化 -> 隔 1 小时再校验（指纹 = 行数 + taskOid 集合 + 最大 lastTime）
+     所有等待都由主循环轮询推进，不 sleep 阻塞；重试严格限制在运行日当天，
+     到 23:00 仍未就绪就放弃并记 WARN，绝不带到转天，不影响次日 01:00 的批次。
+     放弃的日期需手动补跑：--mode batch --start <日期> --end <日期>
+
+     可调（.env 或命令行参数，二者任选）：
+       RETRY_INTERVAL_HOURS=1              空 / 未稳定后的重试间隔
+       STABILITY_RECHECK_MINUTES=10        首次非空后的快速复核；设 0 则统一按小时
+       RETRY_WINDOW_END=23:00              当天最晚发起探测的时刻
+       MAX_RETRY_ATTEMPTS=24               单日单个批次的探测次数上限
+       SCHEDULER_POLL_SECONDS=60           主循环轮询间隔
+     命令行等价：
+       python -m xiaoxin_work_order.cli.app --retry-interval-hours 1 \
+           --stability-recheck-minutes 10 --retry-window-end 23:00
+     只想在 01:00 登记、启动时不登记：加 --no-run-now
+
+2) 一次性任务（脚本参数原样作为容器内命令，执行完自动删除容器）：
+   批量补跑工单解析入库：
+       ./run.sh python -m xiaoxin_work_order.cli.app --mode batch --start 2026-04-01 --end 2026-04-28
+   只跑指定单日：
+       ./run.sh python -m xiaoxin_work_order.cli.app --mode date --date 2026-04-01
+   生成 QA 知识：
+       ./run.sh python -m xiaoxin_work_order.cli.generate_qa --start 2026-04-01 --end 2026-04-28
+   上线前只读自检：
+       ./run.sh python -m xiaoxin_work_order.cli.verify_env
+
+可覆盖的变量
+------------
+IMAGE    镜像名，默认 xiaoxin_work_order:v1
+NAME     常驻容器名，默认 xiaoxin_work_order_qa（仅不带参数启动时有效）
+RUN_UID  容器内进程 uid，默认 $(id -u)（宿主机当前用户）
+RUN_GID  容器内进程 gid，默认 $(id -g)
+示例：IMAGE=xiaoxin_work_order:v2 NAME=xiaoxin_work_order_qa_v2 ./run.sh
+示例：RUN_UID=1001 RUN_GID=1001 ./run.sh   # 部署账号与登录账号不同时显式指定
+
+注意：不要用 sudo ./run.sh —— 那样 id -u=0，容器又变回 root；
+     需要 sudo 才能操作 docker 的话，请把自己加进 docker 组，或显式给 RUN_UID。
+
+挂载与配置
+----------
+整个项目目录 -> /app （一条 -v 覆盖代码、.env、prompts、logs、data）：
+    .env                config.py 在每次进程启动时读 /app/.env
+    prompts/*.txt       load_prompt() 每次调用都读文件，改完连 restart 都不用
+    xiaoxin_work_order/ 改 .py 后需 restart（Python 模块已加载进内存）
+    logs/  data/        容器写入，宿主机直接可见；目录不存在时由代码自建
+
+为什么不用 --env-file .env：
+    --env-file 是 docker run 客户端在「创建容器」时把文件内容固化进容器环境变量，
+    docker restart 不会重新解析；而它的优先级又高于 config.py 读 .env
+    （显式环境变量 > .env > 内置默认值），结果就是改了 .env、restart 后仍是旧值。
+    去掉后由 config.py 每次启动读挂载进来的 /app/.env，restart 才会真正生效。
+    想临时覆盖某个值仍可用 docker run -e KEY=VALUE，但同样只在创建时生效。
+
+优先级不变：显式 export / docker -e > /app/.env > config.py 内置默认值。
+代码是 CLI 常驻调度进程，不监听 HTTP 端口，因此不做 -p 端口映射。
+
+非 root 与文件属主
+------------------
+run.sh 给两个 docker run 都加了 --user "$(id -u):$(id -g)"：
+    · Dockerfile 里 USER 1000:1000 是镜像默认（直接 docker run 也不是 root）
+    · run.sh 用宿主机真实 uid/gid 覆盖，bind mount 按数字 uid 判权，
+      容器写出的 logs/ data/ 文件属主 = 宿主机当前用户，改删都不用 sudo
+    · 两处（常驻 / 一次性任务）用同一个 uid，产出物属主一致
+    · 同时传 -e HOME=/tmp：数字 uid 在容器内没有 passwd 条目，避免个别库
+      想写 ~/.cache 时失败；不影响 config.py 读 /app/.env
+
+启动前自检：项目根、logs、data 必须可写；若 logs/data 里还有旧版 root
+属主的文件，会报错并提示 sudo chown -R <uid>:<gid> logs data。
+
+边界（docker 的固有约束，不是配置能绕过的）：
+    · 项目目录属主必须是你（或至少给写权限），否则非 root 容器也写不进去：
+          sudo chown -R "$(id -u):$(id -g)" .
+    · 默认 umask 022 -> 新文件 644 / 目录 755：同机其他用户可读但不可写。
+      若要「任意系统用户都能改」，需在宿主机目录上配默认 ACL（容器单方面给不了）：
+          sudo setfacl -R -d -m o::rwx logs data
+          sudo chmod -R g+s logs data
+      （或把需要协作的账号加进同一组，并用 umask 002 启动）
+    · 用 --user 时容器进程不再是 root，因此不能改镜像内系统文件、不能装包；
+      本项目只写 /app/logs 与 /app/data，不受影响。
+
+不使用容器时的等价命令
+----------------------
+python -m xiaoxin_work_order.cli.app
+python -m xiaoxin_work_order.cli.app --mode batch --start ... --end ...
+python -m xiaoxin_work_order.cli.generate_qa --start ... --end ...
+python -m xiaoxin_work_order.cli.verify_env
+
+更多说明见 README.md「九、部署与自检」。

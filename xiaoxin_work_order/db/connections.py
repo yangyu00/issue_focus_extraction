@@ -1,6 +1,6 @@
 """连接与引擎工厂：全项目唯一创建数据库连接的地方。
 
-业务代码一律通过 xiaoxin.db 的函数读写，不自行 create_engine / connect。
+业务代码一律通过 xiaoxin_work_order.db 的函数读写，不自行 create_engine / connect。
 引擎按需创建并缓存（import 时不连库），便于离线测试与本地开发。
 """
 from functools import lru_cache
@@ -8,7 +8,7 @@ from functools import lru_cache
 import pymysql
 from sqlalchemy import create_engine
 
-from xiaoxin.config import GBASE_CONFIG, MYSQL_CONFIG, QA_MYSQL_CONFIG, mysql_url
+from xiaoxin_work_order.config import GBASE_CONFIG, MYSQL_CONFIG, QA_MYSQL_CONFIG, mysql_url
 
 
 @lru_cache(maxsize=None)

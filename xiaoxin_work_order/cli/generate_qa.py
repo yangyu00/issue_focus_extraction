@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """QA 生成的命令行入口。
 
-业务逻辑见 xiaoxin/pipelines/qa_pipeline.py。
+业务逻辑见 xiaoxin_work_order/pipelines/qa_pipeline.py。
 """
 import argparse
 import datetime
 
-from xiaoxin.pipelines.qa_pipeline import enrich_qa_excel, process_non_vendor_data
+from xiaoxin_work_order.pipelines.qa_pipeline import enrich_qa_excel, process_non_vendor_data
 
 
 def _valid_date(value):
@@ -19,7 +19,7 @@ def _valid_date(value):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="python -m xiaoxin.cli.generate_qa",
+        prog="python -m xiaoxin_work_order.cli.generate_qa",
         description="按时间段生成 QA 知识",
     )
     parser.add_argument("--start", type=_valid_date, help="起始日期 YYYY-MM-DD")

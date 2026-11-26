@@ -2,8 +2,8 @@
 import pandas as pd
 from sqlalchemy import text
 
-from xiaoxin.db.connections import qa_connection, qa_engine
-from xiaoxin.logging_setup import logger
+from xiaoxin_work_order.db.connections import qa_connection, qa_engine
+from xiaoxin_work_order.logging_setup import logger
 
 NON_VENDOR_TABLE = "xxa_bomc_qa_non_vendor"  # QA 生成的输入表（app 库写入，此处只读）
 QA_TABLE = "xxa_city_qa_knowledge"           # 标准问答对输出表

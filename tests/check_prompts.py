@@ -2,7 +2,7 @@
 """校验本地提示词与映射表是否仍与 tests/source_snapshot.json 基线逐字一致。
 
 基线在 tests/source_snapshot.json（零第三方依赖）。
-改过 prompts/ 或 xiaoxin/llm/mappings.py 后跑一次；任一不一致退出码为 1。
+改过 prompts/ 或 xiaoxin_work_order/llm/mappings.py 后跑一次；任一不一致退出码为 1。
 
     python tests/check_prompts.py
 """
@@ -13,7 +13,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from xiaoxin.llm.mappings import MAPPING  # noqa: E402
+from xiaoxin_work_order.llm.mappings import MAPPING  # noqa: E402
 
 SNAPSHOT = os.path.join(ROOT, "tests", "source_snapshot.json")
 PROMPTS_DIR = os.path.join(ROOT, "prompts")
@@ -61,9 +61,9 @@ def main():
     if MAPPING != snapshot["mapping"]:
         missing = set(snapshot["mapping"]) - set(MAPPING)
         changed = [k for k in snapshot["mapping"] if k in MAPPING and MAPPING[k] != snapshot["mapping"][k]]
-        problems.append(f"xiaoxin/llm/mappings.py 与基线不一致（缺失 {sorted(missing)}，值变更 {changed}）")
+        problems.append(f"xiaoxin_work_order/llm/mappings.py 与基线不一致（缺失 {sorted(missing)}，值变更 {changed}）")
     else:
-        print(f"[OK] xiaoxin/llm/mappings.py  {len(MAPPING)} 条映射")
+        print(f"[OK] xiaoxin_work_order/llm/mappings.py  {len(MAPPING)} 条映射")
 
     print("-" * 60)
     if problems:

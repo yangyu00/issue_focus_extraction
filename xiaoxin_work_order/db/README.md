@@ -1,4 +1,4 @@
-# `xiaoxin/db` —— 数据库读写模块
+# `xiaoxin_work_order/db` —— 数据库读写模块
 
 > 一句话：**项目里所有 SQL、连接、表名、字段拼装都收口在这个目录里**。业务层（`pipelines/`）只负责"取数 → 调模型 → 组装 DataFrame → 调本模块的函数"，不再自己写 SQL、不再自己 `create_engine` / `connect`。
 
@@ -38,13 +38,13 @@
 
 ## 2. 三套数据源
 
-| 数据源 | 配置（见 `xiaoxin/config.py` / `.env`） | 访问方式 | 读/写 | 用途 |
+| 数据源 | 配置（见 `xiaoxin_work_order/config.py` / `.env`） | 访问方式 | 读/写 | 用途 |
 | --- | --- | --- | --- | --- |
 | app 入库 MySQL | `MYSQL_CONFIG`（`DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`） | SQLAlchemy `engine` + `pandas.to_sql` | 只写 | 4 张业务表 |
 | QA MySQL | `QA_MYSQL_CONFIG`（`QA_DB_*`） | SQLAlchemy `read_sql` + pymysql `executemany` | 读 + 写 | 读非厂商工单、写标准问答对 |
 | GBase | `GBASE_CONFIG`（`GBASE_*`，库 `opera`） | pymysql 原生连接 | 只读 | 工单原始明细 |
 
-> 真实地址、账号、口令不写在本 README；`xiaoxin/config.py` 为三套数据源与模型服务提供内置默认值，可由 `.env` 或同名环境变量覆盖，优先级：**显式 export > `.env` > `config.py` 内置默认值**。`mysql_url()` 负责生成连接串并对账号密码做 URL 编码。
+> 真实地址、账号、口令不写在本 README；`xiaoxin_work_order/config.py` 为三套数据源与模型服务提供内置默认值，可由 `.env` 或同名环境变量覆盖，优先级：**显式 export > `.env` > `config.py` 内置默认值**。`mysql_url()` 负责生成连接串并对账号密码做 URL 编码。
 
 **连接在哪创建**：`connections.py` 是唯一入口，`app_engine()` / `qa_engine()` 按需创建并缓存（import 模块时不会连库，方便离线测试），`gbase_connection()` / `qa_connection()` 每次调用新建、用完即关。
 
@@ -69,10 +69,10 @@
 
 ## 4. 对外 API 速查
 
-统一从 `xiaoxin.db` 导入即可，不要深入子模块：
+统一从 `xiaoxin_work_order.db` 导入即可，不要深入子模块：
 
 ```python
-from xiaoxin.db import (
+from xiaoxin_work_order.db import (
     save_issue_results,      # app 库：一次批次写 4 张表
     read_non_vendor,         # QA 库：按时间读输入
     get_records_by_ids,      # QA 库：按 id 反查
@@ -121,7 +121,7 @@ from xiaoxin.db import (
 调用：
 
 ```python
-from xiaoxin.db import save_issue_results
+from xiaoxin_work_order.db import save_issue_results
 
 counts = save_issue_results(final_df)
 # {'xxa_issues_records': 1, 'xxa_complaint_word_cloud': 1,
@@ -158,7 +158,7 @@ VALUES
 ### 5.2 读：QA 生成的输入
 
 ```python
-from xiaoxin.db import read_non_vendor, get_records_by_ids
+from xiaoxin_work_order.db import read_non_vendor, get_records_by_ids
 
 df = read_non_vendor("2026-04-01", "2026-04-28")
 # 等价 SQL：
@@ -185,7 +185,7 @@ detail = get_records_by_ids([1024, 1025])
 ### 5.3 读：GBase 工单原始明细（只读）
 
 ```python
-from xiaoxin.db import query_gbase_by_task_oids
+from xiaoxin_work_order.db import query_gbase_by_task_oids
 
 rows = query_gbase_by_task_oids(["T202604010002"])
 # 等价 SQL：
@@ -209,7 +209,7 @@ rows = query_gbase_by_task_oids(["T202604010002"])
 ### 5.4 写：标准问答对
 
 ```python
-from xiaoxin.db import save_qa_knowledge
+from xiaoxin_work_order.db import save_qa_knowledge
 
 qa_data = [{
     "standard_question": "宽带无法上网且光猫亮红灯如何处理",
@@ -238,18 +238,18 @@ n = save_qa_knowledge(qa_data)   # 返回 1
 
 ## 7. 边界与约定
 
-- 本模块**不建表、不改表结构**（没有 DDL）。表由 DBA 预建，`python -m xiaoxin.cli.verify_env` 会只读检查 4 张 app 表是否存在。
-- 4 张 app 表与 `xxa_city_qa_knowledge` 的列类型、主键与 `id` 列定义由数据库管理员提供（责任人占位 / 获取渠道占位）；表缺失时 `xiaoxin.cli.verify_env` 对 app 表输出 `WARN 缺少表: ...`。
-- 本模块**不做业务过滤、不调模型、不发 HTTP**：过滤规则、聚类、Excel 导出都在 `pipelines/qa_pipeline.py`；取数接口在 `xiaoxin/api/backend.py`。
+- 本模块**不建表、不改表结构**（没有 DDL）。表由 DBA 预建，`python -m xiaoxin_work_order.cli.verify_env` 会只读检查 4 张 app 表是否存在。
+- 4 张 app 表与 `xxa_city_qa_knowledge` 的列类型、主键与 `id` 列定义由数据库管理员提供（责任人占位 / 获取渠道占位）；表缺失时 `xiaoxin_work_order.cli.verify_env` 对 app 表输出 `WARN 缺少表: ...`。
+- 本模块**不做业务过滤、不调模型、不发 HTTP**：过滤规则、聚类、Excel 导出都在 `pipelines/qa_pipeline.py`；取数接口在 `xiaoxin_work_order/api/backend.py`。
 - 上游字段改名（如接口 `taskOid` → 别的名字）改 `pipelines/issue_pipeline.py`；**列名/表名/固定值变动改本模块**，并在本 README 同步示例。
 - `xxa_bomc_qa_non_vendor` 由 app 库写入、由 QA 库读取，两张库同名表是同一份业务数据的两个连接地址，排查数据不一致时先核对 `MYSQL_CONFIG` 与 `QA_MYSQL_CONFIG`。
 
 ## 8. 自检
 
 ```bash
-python -m xiaoxin.cli.verify_env                          # 5 项全查（含 4 张 app 表是否存在）
-python -m xiaoxin.cli.verify_env --skip-model --skip-api  # 只查 3 个数据库
+python -m xiaoxin_work_order.cli.verify_env                          # 5 项全查（含 4 张 app 表是否存在）
+python -m xiaoxin_work_order.cli.verify_env --skip-model --skip-api  # 只查 3 个数据库
 python tests/check_prompts.py                             # 提示词/映射基线（不涉及数据库）
 ```
 
-`xiaoxin.cli.verify_env` 的数据库检查只做 `SELECT VERSION()` / `information_schema` 查询，不写入任何业务表；未加 `--skip-api` / `--skip-model` 时另会向后端取数接口与模型服务各发起一次连通性调用；`APP_TABLES` 常量即来自本模块。
+`xiaoxin_work_order.cli.verify_env` 的数据库检查只做 `SELECT VERSION()` / `information_schema` 查询，不写入任何业务表；未加 `--skip-api` / `--skip-model` 时另会向后端取数接口与模型服务各发起一次连通性调用；`APP_TABLES` 常量即来自本模块。

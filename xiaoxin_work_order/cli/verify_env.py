@@ -4,8 +4,8 @@
 检查 5 项：app 入库 MySQL、QA MySQL、GBase、后端取数接口、直连模型服务。
 不写入任何业务数据；模型项会发起 1 次极短的 chat/completions 调用。
 
-    python -m xiaoxin.cli.verify_env
-    python -m xiaoxin.cli.verify_env --skip-model --skip-api
+    python -m xiaoxin_work_order.cli.verify_env
+    python -m xiaoxin_work_order.cli.verify_env --skip-model --skip-api
 """
 import argparse
 import datetime
@@ -15,14 +15,14 @@ import time
 import pymysql
 import requests
 
-from xiaoxin.config import (
+from xiaoxin_work_order.config import (
     BACKEND_API_URL,
     GBASE_CONFIG,
     LLM_URL,
     MYSQL_CONFIG,
     QA_MYSQL_CONFIG,
 )
-from xiaoxin.db import APP_TABLES
+from xiaoxin_work_order.db import APP_TABLES
 
 # 只读检查：不打印任何账号、密码、API Key
 
@@ -76,7 +76,7 @@ def _check_api():
 
 def _check_model():
     t0 = time.time()
-    from xiaoxin.llm.client import chat
+    from xiaoxin_work_order.llm.client import chat
 
     text = chat("只回复两个字：OK", max_retries=1, timeout=30)
     return True, f"返回 {len(text)} 字: {text[:20]}", time.time() - t0
@@ -84,7 +84,7 @@ def _check_model():
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="python -m xiaoxin.cli.verify_env",
+        prog="python -m xiaoxin_work_order.cli.verify_env",
         description="上线前只读连通性自检",
     )
     parser.add_argument("--skip-api", action="store_true", help="跳过后端取数接口检查")

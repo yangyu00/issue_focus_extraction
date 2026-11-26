@@ -4,7 +4,7 @@
 查 GBase 补工单详情 → 直连大模型聚类生成标准问答对 → 写入 xxa_city_qa_knowledge，
 并导出 GBase 明细 / QA Excel。
 
-所有数据库读写来自 xiaoxin.db；聚类提示词由 prompts/qa_cluster.txt 维护。
+所有数据库读写来自 xiaoxin_work_order.db；聚类提示词由 prompts/qa_cluster.txt 维护。
 """
 import ast
 import json
@@ -14,22 +14,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json_repair
 import pandas as pd
 
-from xiaoxin.config import (
+from xiaoxin_work_order.config import (
     DATA_DIR,
     GENERATE_QA_ERROR_LOG_NAME,
     GENERATE_QA_INFO_LOG_NAME,
     QA_LLM_MODEL,
 )
-from xiaoxin.db import (
+from xiaoxin_work_order.db import (
     NON_VENDOR_TABLE,
     get_records_by_ids,
     query_gbase_by_task_oids,
     read_non_vendor,
     save_qa_knowledge,
 )
-from xiaoxin.llm.client import chat, extract_json_block
-from xiaoxin.llm.prompt_loader import load_prompt
-from xiaoxin.logging_setup import logger, setup_logging
+from xiaoxin_work_order.llm.client import chat, extract_json_block
+from xiaoxin_work_order.llm.prompt_loader import load_prompt
+from xiaoxin_work_order.logging_setup import logger, setup_logging
 
 setup_logging(GENERATE_QA_INFO_LOG_NAME, GENERATE_QA_ERROR_LOG_NAME)
 

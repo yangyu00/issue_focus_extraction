@@ -6,7 +6,7 @@
 import os
 import re
 
-from xiaoxin.config import PROMPTS_DIR
+from xiaoxin_work_order.config import PROMPTS_DIR
 
 _PLACEHOLDER = re.compile(r"\{\{([^{}]+)\}\}")
 

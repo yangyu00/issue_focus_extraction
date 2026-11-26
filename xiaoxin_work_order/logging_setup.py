@@ -1,7 +1,7 @@
 """日志配置。"""
 from loguru import logger
 
-from xiaoxin.config import (
+from xiaoxin_work_order.config import (
     ERROR_LOG_NAME,
     ERROR_LOG_PATH,
     INFO_LOG_NAME,
