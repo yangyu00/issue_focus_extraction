@@ -1,4 +1,4 @@
-"""日志配置（原 utils.py）。"""
+"""日志配置。"""
 from loguru import logger
 
 from xiaoxin.config import (

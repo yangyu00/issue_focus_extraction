@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""上线前只读连通性自检（原 verify_env.py）。
+"""上线前只读连通性自检。
 
 检查 5 项：app 入库 MySQL、QA MySQL、GBase、后端取数接口、直连模型服务。
 不写入任何业务数据；模型项会发起 1 次极短的 chat/completions 调用。

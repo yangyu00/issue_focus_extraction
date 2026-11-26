@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""兼容入口：保持 `python app.py ...` 的调用方式不变。
-
-实际实现位于 xiaoxin/cli/app.py（参数与调度）与
-xiaoxin/pipelines/issue_pipeline.py（业务编排）。
-下面几行 re-export 是为了兼容旧代码 / 旧测试里的 `import app`。
+"""入口：转发到 `xiaoxin/cli/app.py`（参数与调度）与 `xiaoxin/pipelines/issue_pipeline.py`（业务编排）。
 """
 from xiaoxin.cli.app import main
 from xiaoxin.pipelines.issue_pipeline import (  # noqa: F401

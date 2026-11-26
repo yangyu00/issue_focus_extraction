@@ -2,7 +2,7 @@
 
 调用结构：
     6 个互不依赖的字段（device / business / cause / branch_actions /
-    vendor_actions / symptom_detail）由 llm_client.chat() 并发调用；
+    vendor_actions / symptom_detail）由 xiaoxin.llm.client.chat() 并发调用；
     业务 → MAPPING → 二级分类 → MAPPING → 故障现象串行；
     全部结果经 clean_field() 清洗后，按 OUTPUT_KEYS 顺序组装 8 字段 JSON 字符串返回。
 

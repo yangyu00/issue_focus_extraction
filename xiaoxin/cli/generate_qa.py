@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""QA 生成的命令行入口（原 generate_qa.py 的 main 部分）。
+"""QA 生成的命令行入口。
 
 业务逻辑见 xiaoxin/pipelines/qa_pipeline.py。
 """

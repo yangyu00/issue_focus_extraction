@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""兼容入口：保持 `python generate_qa.py ...` 的调用方式不变。
-
-实际实现位于 xiaoxin/cli/generate_qa.py 与 xiaoxin/pipelines/qa_pipeline.py。
+"""入口：转发到 `xiaoxin/cli/generate_qa.py` 与 `xiaoxin/pipelines/qa_pipeline.py`。
 """
 from xiaoxin.cli.generate_qa import main
 from xiaoxin.pipelines.qa_pipeline import (  # noqa: F401

@@ -1,8 +1,6 @@
 # `xiaoxin/db` —— 数据库读写模块
 
 > 一句话：**项目里所有 SQL、连接、表名、字段拼装都收口在这个目录里**。业务层（`pipelines/`）只负责"取数 → 调模型 → 组装 DataFrame → 调本模块的函数"，不再自己写 SQL、不再自己 `create_engine` / `connect`。
->
-> 重构前，这些内容散落在根目录的 `app.py`（4 张表的清理与写入）和 `generate_qa.py`（时间范围查询、按 id 反查、GBase 明细、QA 批量插入）里；现在按数据源拆成 4 个文件，职责一眼可见。
 
 ---
 
@@ -46,7 +44,7 @@
 | QA MySQL | `QA_MYSQL_CONFIG`（`QA_DB_*`） | SQLAlchemy `read_sql` + pymysql `executemany` | 读 + 写 | 读非厂商工单、写标准问答对 |
 | GBase | `GBASE_CONFIG`（`GBASE_*`，库 `opera`） | pymysql 原生连接 | 只读 | 工单原始明细 |
 
-> 真实地址、账号、口令一律不写在本 README，也不写在代码里硬编码 — 来自 `.env` 或同名环境变量，优先级：**显式 export > `.env` > `config.py` 内置默认值**。`mysql_url()` 负责生成连接串并对账号密码做 URL 编码。
+> 真实地址、账号、口令不写在本 README；`xiaoxin/config.py` 为三套数据源与模型服务提供内置默认值，可由 `.env` 或同名环境变量覆盖，优先级：**显式 export > `.env` > `config.py` 内置默认值**。`mysql_url()` 负责生成连接串并对账号密码做 URL 编码。
 
 **连接在哪创建**：`connections.py` 是唯一入口，`app_engine()` / `qa_engine()` 按需创建并缓存（import 模块时不会连库，方便离线测试），`gbase_connection()` / `qa_connection()` 每次调用新建、用完即关。
 
@@ -168,13 +166,13 @@ df = read_non_vendor("2026-04-01", "2026-04-28")
 #   WHERE last_time >= '2026-04-01 00:00:00' AND last_time <= '2026-04-28 23:59:59'
 ```
 
-返回的 `df` 每行就是上面 `final_df` 去掉 `fldColumn4` 后的样子，典型一行：
+返回的 `df` 每行是上面 `final_df` 去掉 `fldColumn4` 后写入的列，并额外带有 `id` 列（`get_records_by_ids` 按它反查），典型一行：
 
 | `id` | `task_oid` | `last_time` | `symptom` | `symptom_detail` | `cause` | `branch_actions` | … |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `1024` | `T202604010002` | `2026-04-01 10:03:11` | `宽带无法使用` | `光猫亮红灯` | `光猫断电` | `[{"operation":"插电","result":"已恢复","suggestion":"无"}]` | … |
 
-业务层随后过滤 `symptom_detail == "其他"` 和空操作数组，按 `symptom` 分组、每 400 条一批送模型聚类。**过滤与聚类不在本模块**，本模块只保证"原样把数据读出来"。
+业务层随后剔除 `symptom_detail == "其他"` 与 `branch_actions` 等于 `[{"operation":"无","result":"无","suggestion":"无"}]` 的记录，按 `symptom` 分组、每 400 条一批送模型聚类。**过滤与聚类不在本模块**，本模块只保证"原样把数据读出来"。
 
 需要按聚类结果里的 `matched_issue_ids` 反查工单时：
 
@@ -234,13 +232,14 @@ n = save_qa_knowledge(qa_data)   # 返回 1
 ## 6. 幂等、事务与错误处理
 
 - **app 4 张表**：每次写入前按本批 `task_oid` 执行 `DELETE ... WHERE task_oid IN (...)`，再 `to_sql(..., if_exists="append")`，所以同一天重复跑不会产生重复行。DELETE 使用 SQLAlchemy `expanding` 绑定参数，表名取自 `APP_TABLES` 白名单，避免拼接注入。
-- **每张表独立 try/except**：某张表写失败只记 ERROR 日志并继续写其他表，与原行为一致；`save_issue_results` 返回的 dict 可直接看哪张表写了几行。
+- **每张表独立 try/except**：某张表写失败只记 ERROR 日志并继续写其他表；`save_issue_results` 返回的 dict 可直接看哪张表写了几行。
 - **QA 表**：`executemany` 一次提交，失败 `rollback` 并返回 0；该表是**追加写**，不做按 id 去重。
 - **连接**：引擎缓存复用；pymysql 原生连接 `try/finally` 关闭；`pool_pre_ping=True` + `pool_recycle=3600` 防长连接失效。
 
 ## 7. 边界与约定
 
 - 本模块**不建表、不改表结构**（没有 DDL）。表由 DBA 预建，`python verify_env.py` 会只读检查 4 张 app 表是否存在。
+- 4 张 app 表与 `xxa_city_qa_knowledge` 的列类型、主键与 `id` 列定义由数据库管理员提供（责任人占位 / 获取渠道占位）；表缺失时 `verify_env.py` 对 app 表输出 `WARN 缺少表: ...`。
 - 本模块**不做业务过滤、不调模型、不发 HTTP**：过滤规则、聚类、Excel 导出都在 `pipelines/qa_pipeline.py`；取数接口在 `xiaoxin/api/backend.py`。
 - 上游字段改名（如接口 `taskOid` → 别的名字）改 `pipelines/issue_pipeline.py`；**列名/表名/固定值变动改本模块**，并在本 README 同步示例。
 - `xxa_bomc_qa_non_vendor` 由 app 库写入、由 QA 库读取，两张库同名表是同一份业务数据的两个连接地址，排查数据不一致时先核对 `MYSQL_CONFIG` 与 `QA_MYSQL_CONFIG`。
@@ -253,4 +252,4 @@ python verify_env.py --skip-model --skip-api  # 只查 3 个数据库
 python tests/check_prompts.py                 # 提示词/映射基线（不涉及数据库）
 ```
 
-`verify_env.py` 只做 `SELECT VERSION()` / `information_schema` 查询，不写入任何业务表；`APP_TABLES` 常量即来自本模块。
+`verify_env.py` 的数据库检查只做 `SELECT VERSION()` / `information_schema` 查询，不写入任何业务表；未加 `--skip-api` / `--skip-model` 时另会向后端取数接口与模型服务各发起一次连通性调用；`APP_TABLES` 常量即来自本模块。

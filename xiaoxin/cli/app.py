@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""调度 / 命令行入口（原 app.py 的 main 部分）。
+"""调度 / 命令行入口。
 
 业务逻辑见 xiaoxin/pipelines/issue_pipeline.py。
 """

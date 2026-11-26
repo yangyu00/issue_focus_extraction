@@ -1,4 +1,4 @@
-"""流水线二：QA 知识生成（原 generate_qa.py 的业务部分）。
+"""流水线二：QA 知识生成。
 
 基于 xxa_bomc_qa_non_vendor 的解析结果：按时间取数 → 过滤 → 按 symptom 分组 →
 查 GBase 补工单详情 → 直连大模型聚类生成标准问答对 → 写入 xxa_city_qa_knowledge，

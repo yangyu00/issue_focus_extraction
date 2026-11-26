@@ -3,8 +3,8 @@
 所有连接信息、运行参数集中在此，支持用同名环境变量覆盖，便于 docker / 生产环境外置密钥。
 若线上 DB 端口/地址不同，直接设环境变量即可，不必改代码。
 
-注意：本文件位于 xiaoxin/ 包内，PROJECT_PATH 取上一级（仓库根），
-因此 .env / prompts / logs / data 的路径与原根目录版本完全一致。
+本文件位于 xiaoxin/ 包内，PROJECT_PATH 取上一级（仓库根），
+.env / prompts / logs / data 均落在仓库根。
 """
 import os
 from urllib.parse import quote_plus

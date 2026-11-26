@@ -2,13 +2,11 @@
 
 工单解析入库 + QA 知识生成。
 
-本次改动**只调整代码组织**：原来除 `prompts/` 外所有 `.py` 都堆在根目录，现在按职责拆进 `xiaoxin/` 包，并把散落在 `app.py` / `generate_qa.py` 里的全部数据库读写收口到 `xiaoxin/db/`，配了模块级说明。**CLI 参数、SQL、表名、字段、过滤规则、提示词、Docker 命令全部保持不变**，可以直接替换上线。
-
 > 想理解业务数据怎么存、怎么读，先看 [`xiaoxin/db/README.md`](xiaoxin/db/README.md)：里面有表字典、字段对照和完整的读写内容示例。
 
 ---
 
-## 一、快速开始（命令与重构前完全一致）
+## 一、快速开始
 
 | 功能 | 命令 | 说明 |
 | --- | --- | --- |
@@ -27,7 +25,7 @@ python tests/smoke_test.py                                     # 离线回归
 python tests/check_prompts.py                                  # 提示词/映射基线
 ```
 
-根目录保留的 `app.py` / `generate_qa.py` / `verify_env.py` 只是约 10 行的**兼容入口**（`import` 转发），不含业务逻辑；Dockerfile 的 `CMD ["python", "app.py"]` 因此不用改。
+根目录的 `app.py` / `generate_qa.py` / `verify_env.py` 是薄入口（`import` 转发），不含业务逻辑；Dockerfile 的 `CMD ["python", "app.py"]` 指向 `app.py`。
 
 ---
 
@@ -35,9 +33,9 @@ python tests/check_prompts.py                                  # 提示词/映�
 
 ```
 issue_focus_extraction/
-├── app.py                     # 兼容入口（→ xiaoxin/cli/app.py）
-├── generate_qa.py             # 兼容入口（→ xiaoxin/cli/generate_qa.py）
-├── verify_env.py              # 兼容入口（→ xiaoxin/cli/verify_env.py）
+├── app.py                     # 入口（→ xiaoxin/cli/app.py）
+├── generate_qa.py             # 入口（→ xiaoxin/cli/generate_qa.py）
+├── verify_env.py              # 入口（→ xiaoxin/cli/verify_env.py）
 ├── README.md                  # 本文件：项目级说明
 ├── .env / .env.example        # 本地配置 / 脱敏配置模板
 ├── .gitignore / .dockerignore
@@ -72,8 +70,8 @@ issue_focus_extraction/
     │   ├── qa_knowledge.py    # QA 库：读非厂商工单 / 按 id 反查 / 写标准问答
     │   └── gbase.py           # GBase opera.xiaoxin 明细（只读）
     ├── pipelines/
-    │   ├── issue_pipeline.py  # 取数 → 提取 → 组装 → 入库（原 app.py 业务部分）
-    │   └── qa_pipeline.py     # 过滤 → 分组聚类 → 写库/导出（原 generate_qa.py 业务部分）
+    │   ├── issue_pipeline.py  # 取数 → 提取 → 组装 → 入库
+    │   └── qa_pipeline.py     # 过滤 → 分组聚类 → 写库/导出
     └── cli/
         ├── app.py             # 参数解析 + 每日调度
         ├── generate_qa.py     # QA 生成参数解析
@@ -86,7 +84,7 @@ issue_focus_extraction/
 
 | 层 | 目录 | 做什么 | 不做什么 |
 | --- | --- | --- | --- |
-| 入口 | 根目录 3 个 shim / `xiaoxin/cli/` | 解析参数、调度循环 | 不写 SQL、不调模型 |
+| 入口 | 根目录 3 个入口 / `xiaoxin/cli/` | 解析参数、调度循环 | 不写 SQL、不调模型 |
 | 编排 | `xiaoxin/pipelines/` | 串起取数、提取、过滤、聚类、导出 | 不建连接、不拼 SQL |
 | 提取 | `xiaoxin/extraction/` + `xiaoxin/llm/` | 8 字段工作流、模型调用、提示词、映射 | 不碰数据库 |
 | 外部接口 | `xiaoxin/api/` | 后端取数 HTTP 调用 | 不落库 |
@@ -94,26 +92,6 @@ issue_focus_extraction/
 | 基础 | `config.py` / `logging_setup.py` / `common.py` | 配置、日志、纯函数 | — |
 
 依赖方向单一：`cli → pipelines → {api, extraction, llm, db} → config`，不会反向引用。
-
----
-
-## 四、文件迁移对照表
-
-| 重构前（根目录） | 重构后 |
-| --- | --- |
-| `app.py`（main + 调度 + 业务 + 4 表 SQL） | `xiaoxin/cli/app.py`（main/调度）+ `xiaoxin/pipelines/issue_pipeline.py`（业务）+ `xiaoxin/db/app_records.py`（写库）+ 根目录 shim |
-| `generate_qa.py`（QA 全流程 + GBase/MySQL SQL） | `xiaoxin/cli/generate_qa.py` + `xiaoxin/pipelines/qa_pipeline.py` + `xiaoxin/db/qa_knowledge.py` / `gbase.py` + 根目录 shim |
-| `config.py` | `xiaoxin/config.py` |
-| `utils.py` | `xiaoxin/logging_setup.py`（另拆出 `xiaoxin/common.py`） |
-| `llm_client.py` | `xiaoxin/llm/client.py` |
-| `prompt_loader.py` | `xiaoxin/llm/prompt_loader.py` |
-| `mappings.py` | `xiaoxin/llm/mappings.py` |
-| `issue_workflow.py` | `xiaoxin/extraction/workflow.py` |
-| `verify_env.py` | `xiaoxin/cli/verify_env.py` + 根目录 shim |
-| —（新增） | `xiaoxin/api/backend.py`、`xiaoxin/db/*`、`xiaoxin/common.py`、`.env.example` |
-| 未改动 | `prompts/*.txt`、`tests/source_snapshot.json`、`requirements.txt`、`.env`、`Dockerfile`、`docker-compose.yml` |
-
-`config.py` 移入包内后，`PROJECT_PATH` 取包的上一级，所以 `.env` / `prompts/` / `logs/` / `data/` 的落盘位置与重构前**完全相同**。
 
 ---
 
@@ -142,7 +120,7 @@ from xiaoxin.db import (
 
 ---
 
-## 六、行为不变清单（可放心替换）
+## 六、运行与数据契约
 
 - CLI 参数与默认值、`schedule` 每日 `01:00` 调度、启动时先跑昨天；
 - `Dockerfile` 的 `CMD`、`docker-compose.yml` 的 `command` / `env_file` / 卷挂载；
@@ -150,17 +128,17 @@ from xiaoxin.db import (
 - 后端接口字段（`taskOid / lastTime / taskTitle / fldFaultcontent / fldColumn2 / fldColumn4`）、`code==200 && success` 校验；
 - 8 字段输出顺序与清洗规则、映射链、`/no_think` 后缀、25 条 `MAPPING` 与 9 段提示词（基线逐字未动）；
 - 4 张表的表名/列名、`key_issues` 与 `key_word` 均取 `symptom`、按 `fldColumn4` 分流、写前按 `task_oid` 删旧；
-- QA 过滤规则（`symptom_detail != "其他"`、空操作数组）、`CHUNK_SIZE=400`、按 `symptom` 分组、Excel 文件名格式；
+- QA 过滤规则（保留 `symptom_detail != "其他"`、剔除 `branch_actions` 等于 `[{"operation":"无","result":"无","suggestion":"无"}]` 的记录）、`CHUNK_SIZE=400`、按 `symptom` 分组、Excel 文件名格式；
 - QA 表列顺序 `question, answer, knowledge_source, work_id, name, city, city_text, task_oids` 与固定值；
 - 并发与节奏参数（`MAX_WORKERS` / `FIELD_WORKERS` / `LLM_QPS` / `*_SLEEP`）。
 
-两处**实现层面**的改进（不改变业务结果）：连接改为按需懒加载并缓存，import 时不再建引擎；`DELETE` 改为 SQLAlchemy `expanding` 参数绑定 + 表名白名单，消除字符串拼接注入面。
+连接按需懒加载并缓存，import 时不建引擎；`DELETE` 使用 SQLAlchemy `expanding` 参数绑定 + 表名白名单。
 
 ---
 
 ## 七、配置与环境变量
 
-`xiaoxin/config.py` 启动时加载仓库根的 `.env`，也支持同名环境变量覆盖；`.env.example` 是脱敏模板。真实地址与凭据不写入本文档。
+`xiaoxin/config.py` 启动时加载仓库根的 `.env`，也支持同名环境变量覆盖；`.env.example` 是脱敏模板。真实地址与凭据不写入本文档。容器基线为 `python:3.11-slim`、容器内时区 `Asia/Shanghai`（见 `Dockerfile`）；依赖及版本见 `requirements.txt`。
 
 | 变量组 | 用途 |
 | --- | --- |
@@ -171,6 +149,8 @@ from xiaoxin.db import (
 | `LLM_URL` / `LLM_API_KEY` / `LLM_MODEL` / `QA_LLM_MODEL` | 直连模型服务；提取与 QA 聚类分别用两个模型名 |
 | `LLM_QPS` / `LLM_MAX_RETRIES` / `LLM_TIMEOUT` / `LLM_STREAM` / `LLM_TEMPERATURE` | 限流、重试、超时、流式、采样温度 |
 | `MAX_WORKERS` / `FIELD_WORKERS` / `POST_CALL_SLEEP` / `BATCH_DAY_SLEEP` / `SCHEDULE_TIME` | 并发与节奏 |
+
+取值来源与缺失行为：`DB_*` / `QA_DB_*` / `GBASE_*` 的地址、账号、口令由数据库管理员提供（责任人占位）；`BACKEND_API_URL` 由后端取数接口提供方提供（责任人占位）；`LLM_URL` / `LLM_API_KEY` / `LLM_MODEL` / `QA_LLM_MODEL` 由模型服务提供方提供（责任人占位）。未在 `.env` 或环境变量中给出的键，回落到 `xiaoxin/config.py` 的同名内置默认值；`LLM_STREAM` 取值 `1` / `true` / `yes` / `on` 时启用流式，其余值按非流式处理。
 
 运行前需可达：后端取数接口、app MySQL、QA MySQL、GBase、模型服务。常驻进程只有 `app.py`；`generate_qa.py` / `verify_env.py` / `tests/*` 为一次性任务。
 
@@ -183,6 +163,8 @@ from xiaoxin.db import (
 `device` 设备、`business` 业务、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作、`vendor_actions` 厂商操作；另加 `create_time` 入库时间、`response_time` 模型耗时(ms)、`error_msg` 失败原因。
 
 **入库分流**：`fldColumn4`（厂商处理意见）有效 → `xxa_issues_records` + `xxa_complaint_word_cloud` + `xxa_bomc_qa_records`；无效 → `xxa_bomc_qa_non_vendor`（`vendor_actions` 置空）。写前按 `task_oid` 删旧。
+
+后端接口返回空结果时该日期批次直接跳过、不写库；响应缺少 `taskOid` / `fldColumn4` 时记 ERROR 日志并跳过，不写库（见 `xiaoxin/pipelines/issue_pipeline.py`）。
 
 **QA 生成**：读 `xxa_bomc_qa_non_vendor` → 过滤 → 按 `symptom` 分组、每 400 条一批 → 查 GBase 补原文 → 模型聚类 → 统一写 `xxa_city_qa_knowledge`。详细字段示例见 `xiaoxin/db/README.md`。
 
@@ -210,12 +192,14 @@ python tests/smoke_test.py                    # 非流式 / --stream 流式
 python tests/check_prompts.py                 # 输出「全部一致：9 段提示词 + 25 条映射」
 ```
 
+`verify_env.py` 每项输出 `[PASS]` / `[FAIL]`，末行输出「汇总：N 项，通过 M，失败 K」，全部通过时退出码为 0、否则为 1；`tests/smoke_test.py` 末行输出 `ALL_TESTS_PASSED (stream=true|false)`。
+
 `verify_env.py` 全部只读，不写业务表；`smoke_test.py` 起本地伪造模型服务，不碰真实数据库与接口。
 
 ---
 
 ## 十、安全与维护提示
 
-- 原仓库约定 `.env` 随项目交付且填有真实凭据，本次为保持"开箱即跑"原样保留；**生产环境建议改用环境变量/密钥管理注入，并把 `.env` 从版本库移除**；新增的 `.env.example` 可作为脱敏模板。
+- `.env` 随项目交付且填有真实凭据；**生产环境建议改用环境变量/密钥管理注入，并把 `.env` 从版本库移除**；`.env.example` 可作为脱敏模板。
 - `.idea/` 是编辑器元数据，已在 `.gitignore` / `.dockerignore` 中忽略，可随时删除，不影响运行。
 - 改提示词 → 改 `prompts/*.txt` 并同步 `tests/source_snapshot.json`；改表结构/固定值 → 改 `xiaoxin/db/` 对应文件并同步 `xiaoxin/db/README.md` 的示例。
