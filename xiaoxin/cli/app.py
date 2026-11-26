@@ -28,7 +28,8 @@ def _valid_date(value):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="工单解析入库（每日调度 / 批量补跑 / 单日）"
+        prog="python -m xiaoxin.cli.app",
+        description="工单解析入库（每日调度 / 批量补跑 / 单日）",
     )
     parser.add_argument(
         "--mode", choices=["schedule", "daily", "date", "batch"], default="schedule",

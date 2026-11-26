@@ -18,7 +18,10 @@ def _valid_date(value):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="按时间段生成 QA 知识")
+    parser = argparse.ArgumentParser(
+        prog="python -m xiaoxin.cli.generate_qa",
+        description="按时间段生成 QA 知识",
+    )
     parser.add_argument("--start", type=_valid_date, help="起始日期 YYYY-MM-DD")
     parser.add_argument("--end", type=_valid_date, help="结束日期 YYYY-MM-DD")
     parser.add_argument("--qa-excel", action="store_true", help="额外把 QA 结果导出为 Excel")

@@ -1,0 +1,59 @@
+run.sh 使用说明
+================
+
+作用
+----
+用 docker run 启动「小信智能体摘要提取」，不使用 docker compose。
+脚本把镜像名、容器名、--env-file、日志与数据卷、重启策略固化在一处，
+避免每次手敲长命令：不带参数启动常驻服务，带参数则跑一次性任务。
+
+前置条件
+--------
+1. 已安装并可运行 docker（当前用户有权限执行 docker 命令）。
+2. 仓库根目录存在 .env（可 cp .env.example .env 后按实际环境填写）。
+3. 首次使用先构建镜像（脚本不会自动构建）：
+       docker build -t xiaoxin:v1 .
+   如需换镜像名/标签，用 IMAGE 环境变量覆盖，例如 IMAGE=myimg:v2 ./run.sh
+
+常用用法（在仓库根目录执行）
+----------------------------
+1) 启动常驻每日调度服务（后台运行：启动时先跑昨天，之后每天 01:00 跑昨天）：
+       ./run.sh
+   查看日志：
+       docker logs -f xiaoxin_qa
+   停止 / 删除容器：
+       docker stop xiaoxin_qa
+       docker rm -f xiaoxin_qa
+   注意：同名容器已存在时脚本会报错退出，不会覆盖；重建前先删除旧容器。
+
+2) 一次性任务（脚本参数原样作为容器内命令，执行完自动删除容器）：
+   批量补跑工单解析入库：
+       ./run.sh python -m xiaoxin.cli.app --mode batch --start 2026-04-01 --end 2026-04-28
+   只跑指定单日：
+       ./run.sh python -m xiaoxin.cli.app --mode date --date 2026-04-01
+   生成 QA 知识：
+       ./run.sh python -m xiaoxin.cli.generate_qa --start 2026-04-01 --end 2026-04-28
+   上线前只读自检：
+       ./run.sh python -m xiaoxin.cli.verify_env
+
+可覆盖的变量
+------------
+IMAGE  镜像名，默认 xiaoxin:v1
+NAME   常驻容器名，默认 xiaoxin_qa（仅不带参数启动时有效）
+示例：IMAGE=xiaoxin:v2 NAME=xiaoxin_qa_v2 ./run.sh
+
+挂载与配置
+----------
+.env                  经 --env-file 注入容器（显式导出的环境变量优先级更高）
+./logs -> /app/logs    日志
+./data -> /app/data    Excel 等运行产物
+代码是 CLI 常驻调度进程，不监听 HTTP 端口，因此不做 -p 端口映射。
+
+不使用容器时的等价命令
+----------------------
+python -m xiaoxin.cli.app
+python -m xiaoxin.cli.app --mode batch --start ... --end ...
+python -m xiaoxin.cli.generate_qa --start ... --end ...
+python -m xiaoxin.cli.verify_env
+
+更多说明见 README.md「九、部署与自检」。

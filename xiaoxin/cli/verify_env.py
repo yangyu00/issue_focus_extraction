@@ -4,8 +4,8 @@
 检查 5 项：app 入库 MySQL、QA MySQL、GBase、后端取数接口、直连模型服务。
 不写入任何业务数据；模型项会发起 1 次极短的 chat/completions 调用。
 
-    python verify_env.py
-    python verify_env.py --skip-model --skip-api
+    python -m xiaoxin.cli.verify_env
+    python -m xiaoxin.cli.verify_env --skip-model --skip-api
 """
 import argparse
 import datetime
@@ -83,7 +83,10 @@ def _check_model():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="上线前只读连通性自检")
+    parser = argparse.ArgumentParser(
+        prog="python -m xiaoxin.cli.verify_env",
+        description="上线前只读连通性自检",
+    )
     parser.add_argument("--skip-api", action="store_true", help="跳过后端取数接口检查")
     parser.add_argument("--skip-model", action="store_true", help="跳过模型服务检查（不消耗调用）")
     args = parser.parse_args()

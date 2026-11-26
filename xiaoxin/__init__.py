@@ -9,6 +9,6 @@
     pipelines                        业务编排：取数→提取→入库、聚类→写库
     cli                              命令行入口、参数解析与每日调度
 
-根目录的 app.py / generate_qa.py / verify_env.py 是转发到本包的薄入口。
+命令行入口统一在 cli/ 包内，用 `python -m xiaoxin.cli.<模块>` 调用，根目录不保留转发壳。
 """
 __version__ = "1.0.0"

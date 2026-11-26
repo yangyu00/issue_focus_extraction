@@ -238,8 +238,8 @@ n = save_qa_knowledge(qa_data)   # 返回 1
 
 ## 7. 边界与约定
 
-- 本模块**不建表、不改表结构**（没有 DDL）。表由 DBA 预建，`python verify_env.py` 会只读检查 4 张 app 表是否存在。
-- 4 张 app 表与 `xxa_city_qa_knowledge` 的列类型、主键与 `id` 列定义由数据库管理员提供（责任人占位 / 获取渠道占位）；表缺失时 `verify_env.py` 对 app 表输出 `WARN 缺少表: ...`。
+- 本模块**不建表、不改表结构**（没有 DDL）。表由 DBA 预建，`python -m xiaoxin.cli.verify_env` 会只读检查 4 张 app 表是否存在。
+- 4 张 app 表与 `xxa_city_qa_knowledge` 的列类型、主键与 `id` 列定义由数据库管理员提供（责任人占位 / 获取渠道占位）；表缺失时 `xiaoxin.cli.verify_env` 对 app 表输出 `WARN 缺少表: ...`。
 - 本模块**不做业务过滤、不调模型、不发 HTTP**：过滤规则、聚类、Excel 导出都在 `pipelines/qa_pipeline.py`；取数接口在 `xiaoxin/api/backend.py`。
 - 上游字段改名（如接口 `taskOid` → 别的名字）改 `pipelines/issue_pipeline.py`；**列名/表名/固定值变动改本模块**，并在本 README 同步示例。
 - `xxa_bomc_qa_non_vendor` 由 app 库写入、由 QA 库读取，两张库同名表是同一份业务数据的两个连接地址，排查数据不一致时先核对 `MYSQL_CONFIG` 与 `QA_MYSQL_CONFIG`。
@@ -247,9 +247,9 @@ n = save_qa_knowledge(qa_data)   # 返回 1
 ## 8. 自检
 
 ```bash
-python verify_env.py                          # 5 项全查（含 4 张 app 表是否存在）
-python verify_env.py --skip-model --skip-api  # 只查 3 个数据库
-python tests/check_prompts.py                 # 提示词/映射基线（不涉及数据库）
+python -m xiaoxin.cli.verify_env                          # 5 项全查（含 4 张 app 表是否存在）
+python -m xiaoxin.cli.verify_env --skip-model --skip-api  # 只查 3 个数据库
+python tests/check_prompts.py                             # 提示词/映射基线（不涉及数据库）
 ```
 
-`verify_env.py` 的数据库检查只做 `SELECT VERSION()` / `information_schema` 查询，不写入任何业务表；未加 `--skip-api` / `--skip-model` 时另会向后端取数接口与模型服务各发起一次连通性调用；`APP_TABLES` 常量即来自本模块。
+`xiaoxin.cli.verify_env` 的数据库检查只做 `SELECT VERSION()` / `information_schema` 查询，不写入任何业务表；未加 `--skip-api` / `--skip-model` 时另会向后端取数接口与模型服务各发起一次连通性调用；`APP_TABLES` 常量即来自本模块。

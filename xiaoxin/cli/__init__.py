@@ -1,4 +1,8 @@
 """命令行入口：参数解析、每日调度、上线自检。
 
-根目录 app.py / generate_qa.py / verify_env.py 只是一层薄壳，实际入口在这里。
+这里是唯一的入口层，根目录不再保留任何转发壳文件：
+
+    python -m xiaoxin.cli.app           # 每日调度 / 批量补跑 / 单日
+    python -m xiaoxin.cli.generate_qa   # QA 知识生成
+    python -m xiaoxin.cli.verify_env    # 上线前只读连通性自检
 """
