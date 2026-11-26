@@ -1,7 +1,6 @@
 """tests/ 下各脚本共用的路径引导（零第三方依赖）。
 
-把 tests/ 目录与仓库根都加入 sys.path，之后各脚本可安全导入 xiaoxin_work_order，
-不再每个文件各写一遍 ``ROOT = ...; sys.path.insert(0, ROOT)``。
+把 tests/ 目录与仓库根都加入 sys.path，之后各脚本可安全导入 xiaoxin_work_order。
 """
 import os
 import sys

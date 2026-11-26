@@ -1,7 +1,6 @@
 """``--enrich-excel`` 手动辅助命令：从 QA Excel 反查 GBase 工单明细。
 
-原位于 pipelines/qa_pipeline.py；它是一次性 CLI 工具，不属于聚类流水线，
-故拆到 cli/ 并由 cli.generate_qa 调用。id 解析统一走 common.parse_issue_ids()。
+id 解析统一走 common.parse_issue_ids()。
 """
 import os
 

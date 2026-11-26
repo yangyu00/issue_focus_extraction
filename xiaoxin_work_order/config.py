@@ -89,8 +89,7 @@ QA_MYSQL_CONFIG = {
 }
 
 # ================= GBase（opera 库） =================
-# 三套数据源统一用 database 键（pymysql 的正式参数名），verify_env 不再需要
-# cfg.get("database") or cfg.get("db") 这种兜底。环境变量名仍是 GBASE_DB。
+# 三套数据源统一用 database 键（pymysql 的正式参数名）。环境变量名仍是 GBASE_DB。
 GBASE_CONFIG = {
     "host": _s("GBASE_HOST", "134.85.16.139"),
     "port": _i("GBASE_PORT", 5258),

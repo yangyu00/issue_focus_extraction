@@ -94,7 +94,7 @@ def main():
         return
 
     if args.mode == "daily":
-        # 手动单次：保持原有「立刻取昨天并入库」行为，不走就绪探测
+        # 手动单次：立刻取昨天并入库，不走就绪探测
         run_daily_job()
         return
 

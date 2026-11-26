@@ -5,7 +5,7 @@
 并导出 GBase 明细 / QA Excel。
 
 所有数据库读写来自 xiaoxin_work_order.db；聚类提示词由 prompts/qa_cluster.txt 维护。
-``--enrich-excel`` 的手动反查命令已拆到 xiaoxin_work_order/cli/qa_excel.py。
+``--enrich-excel`` 的手动反查命令见 xiaoxin_work_order/cli/qa_excel.py。
 日志由 CLI 入口统一配置。
 """
 import json
@@ -71,7 +71,7 @@ def call_qa_model(model_input_str: str) -> str:
 def process_group(symptom, group) -> GroupResult:
     """处理单个 symptom 组：查 GBase + 分批调用模型聚类。
 
-    结果一次性返回，不再通过参数里的「collector」顺带往外写状态。
+    结果一次性返回。
     """
     qa_list = []
     total_records = len(group)
@@ -162,8 +162,7 @@ def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool 
         grouped = df_filtered.groupby("symptom")
         logger.info("=== 各 Symptom 记录数统计 ===\n" + df_filtered["symptom"].value_counts().to_string())
 
-        # 组之间本就串行（限流由 llm.client 统一控制），直接用 for，不再包一层
-        # max_workers=1 的线程池 + future_to_symptom 映射。
+        # 组之间本就串行（限流由 llm.client 统一控制），直接用 for。
         all_qa_data = []
         all_gbase_rows = []
         for symptom, group in grouped:

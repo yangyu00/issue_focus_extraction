@@ -1,7 +1,6 @@
 """CLI 共用的参数校验器（纯函数，只依赖标准库）。
 
-app.py / generate_qa.py 的 ``--date`` ``--start`` ``--end`` 用同一份校验，
-不再各抄一遍 ``_valid_date``。
+app.py / generate_qa.py 的 ``--date`` ``--start`` ``--end`` 用同一份校验。
 """
 import argparse
 import datetime

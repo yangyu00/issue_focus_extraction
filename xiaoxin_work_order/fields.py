@@ -7,8 +7,7 @@
 - ``DEPENDENT_FIELDS``：依赖上游结果、必须串行调用的节点
 - ``PARALLEL_FIELDS``：彼此无依赖、可并发调用的字段
 
-新增/重命名字段时只改本文件，workflow / issue_pipeline / tests 自动跟随；
-字段清单不再在代码、测试与文档里各抄一遍。
+新增/重命名字段时只改本文件，workflow / issue_pipeline / tests 自动跟随。
 """
 
 FIELDS = (

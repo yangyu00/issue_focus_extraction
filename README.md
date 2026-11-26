@@ -99,7 +99,7 @@ issue_focus_extraction/
 | **数据** | **`xiaoxin_work_order/db/`** | **全部 SQL、连接、表名、字段拼装** | **不做业务过滤、不调模型、不建表** |
 | 基础 | `config.py` / `logging_setup.py` / `common.py` | 配置、日志、纯函数 | — |
 
-依赖方向单一：`cli → {pipelines, scheduling} → {api, extraction, llm, db, fields} → {config, common}`；`scheduling.py` 只接收注入的 `fetch` / `on_stable` 回调，`on_stable` 在判定稳定的那次轮询里同步执行（见下），状态机本身不反向依赖任何业务模块，因此可离线单测。不会反向引用。
+依赖方向单一：`cli → {pipelines, scheduling} → {api, extraction, llm, db, fields} → {config, common}`；`scheduling.py` 只接收注入的 `fetch` / `on_stable` 回调，`on_stable` 在判定稳定的那次轮询里同步执行（见下），状态机本身不反向依赖任何业务模块，因此可离线单测。
 
 ---
 
@@ -134,17 +134,18 @@ from xiaoxin_work_order.db import (
 - `Dockerfile` 的 `CMD` 与 `USER 1000:1000`、`run.sh` 的 `docker run` 参数（**整目录挂载 `-v <项目根>:/app`** / `--user <宿主机uid>:<gid>` / `--restart unless-stopped`；刻意不用 `--env-file`，见「八、部署与自检」）；启动前自检 `logs` / `data` 可写且无旧 root 属主文件；
 - 环境变量优先级：显式 `export` > `.env` > `config.py` 内置默认值；`config.py` 每次进程启动读 `/app/.env`，因此改配置后 `docker restart` 即生效；日志文件名与轮转；
 - 日志契约：`logs/INFO` / `logs/ERROR` 下按天 `00:00` 轮转、保留 180 天、`compression=None`；文件名前缀 `xiaoxin_work_order-info` / `xiaoxin_work_order-error` / `generate_qa_knowledge-info` / `generate_qa_knowledge-error`（见 `xiaoxin_work_order/config.py` / `xiaoxin_work_order/logging_setup.py`）。`setup_logging()` 只在各 CLI 入口的 `main()` 调用一次，同时挂一个 stderr sink；业务事件统一走 `logger`（文件 + 屏幕），不再 `print` 与 `logger` 双发，`print` 只留给交互式横幅与自检报告；日志目录也在此时创建，import 不产生副作用。
-- 后端接口字段（`taskOid / lastTime / taskTitle / fldFaultcontent / fldColumn2 / fldColumn4`）、`code==200 && success` 校验；
+- 后端接口：`GET` `BACKEND_API_URL`，查询参数 `startTime` / `endTime`（`YYYY-MM-DD HH:MM:SS`），`timeout=60`；响应需 `code==200 && success`，`result` 为工单列表，字段按 `taskOid / lastTime / taskTitle / fldFaultcontent / fldColumn2 / fldColumn4` 读取；返回非 JSON、业务码不符、网络异常或 `result` 为空时统一返回空 DataFrame（见 `xiaoxin_work_order/api/backend.py`）；
 - 8 字段输出顺序与清洗规则、映射链、`/no_think` 后缀、25 条 `MAPPING` 与 9 段提示词；
 - 4 张表的表名/列名、`key_issues` 与 `key_word` 均取 `symptom`、按 `fldColumn4` 分流、写前按 `task_oid` 删旧；
 - QA 过滤规则（保留 `symptom_detail != "其他"`、剔除 `branch_actions` 等于具名常量 `EMPTY_BRANCH_ACTIONS` 的记录，即模型「全无」输出）、`CHUNK_SIZE=400`、按 `symptom` 分组、Excel 文件名格式；
 - QA 表列顺序 `question, answer, knowledge_source, work_id, name, city, city_text, task_oids` 与固定值；
 - `--enrich-excel <XLSX>` 输入契约（辅助命令已拆到 `cli/qa_excel.py`，属外部依赖）：输入 Excel 必须含 `matched_issue_ids` 列；获取渠道占位：由 `--qa-excel` 导出的 `data/qa_<起>_<止>.xlsx` 提供，责任人占位：QA 结果提供方；文件不存在或缺该列时记 ERROR 日志并终止，输出 `<输入名>_gbase_result.xlsx`。
 - 并发与节奏参数（`MAX_WORKERS` / `FIELD_WORKERS` / `LLM_QPS` / `*_SLEEP`）、就绪探测参数（`RETRY_*` / `STABILITY_RECHECK_MINUTES` / `SCHEDULER_POLL_SECONDS`）。
+- 模型输入与聚类输入契约：`build_labeled_input()` 按「标题 / 描述 / 分公司处理意见 / 厂商处理意见」四个标签拼接，分别取 `taskTitle` / `fldFaultcontent` / `fldColumn2` / `fldColumn4`，空值经 `to_text()` 归一为「无」；`device` 另经 `common.dedup_device_value()` 去除整串翻倍，`branch_actions` / `vendor_actions` 经 `_actions_to_str()` 规整为 JSON 数组字符串；QA 聚类每批输入行格式为 `task_oid: symptom :: symptom_detail :: cause :: formatted_actions`，其中 `formatted_actions` 由 `convert_actions()` 把 JSON 数组摊平成「操作 :: 结果 :: 建议」（见 `issue_pipeline.py` / `qa_pipeline.py` / `common.py`）；
 
 ### 每日调度：就绪探测与当日重试
 
-上游库可能「昨天的数据还没准备好」（接口返回空），也可能「正在补写」（按日期查只拿到不完整快照）。`schedule` 模式因此不再拿到数据就立刻跑模型，改由 `xiaoxin_work_order/scheduling.py` 的状态机判定：
+上游库可能「昨天的数据还没准备好」（接口返回空），也可能「正在补写」（按日期查只拿到不完整快照）。`schedule` 模式由 `xiaoxin_work_order/scheduling.py` 的状态机判定上游数据是否就绪：
 
 | 探测结果 | 动作 | 下次尝试 |
 | --- | --- | --- |
@@ -161,13 +162,13 @@ from xiaoxin_work_order.db import (
 - 同一日期重复登记幂等；当天已成功入库的日期不会重跑模型（顺带避免启动那次与 01:00 那次重复消耗）。
 - `--mode daily` / `date` / `batch` 保持原有「立即取数入库」行为，不走状态机，便于手动补数据。
 
-连接按需懒加载并缓存，import 时不建引擎、也不建日志目录；`DELETE` 使用 SQLAlchemy `expanding` 参数绑定 + 表名白名单。`save_issue_results()` 返回的写入行数里 `-1` 表示该表写入异常，pipeline 会据此记 WARNING，不再无条件打印「完成」。
+连接按需懒加载并缓存，import 时不建引擎、也不建日志目录；`DELETE` 使用 SQLAlchemy `expanding` 参数绑定 + 表名白名单。`save_issue_results()` 返回的写入行数里 `-1` 表示该表写入异常，pipeline 会据此记 WARNING。
 
 ---
 
 ## 六、配置与环境变量
 
-`xiaoxin_work_order/config.py` 每次进程启动加载项目根的 `.env`，也支持同名环境变量覆盖；`.env.example` 是脱敏模板。真实地址与凭据不写入本文档。容器基线为 `python:3.11-slim`、容器内时区 `Asia/Shanghai`（见 `Dockerfile`）；依赖及版本见 `requirements.txt`。
+`xiaoxin_work_order/config.py` 每次进程启动加载项目根的 `.env`，也支持同名环境变量覆盖；`.env.example` 是脱敏模板。真实地址与凭据不写入本文档。容器基线为 `python:3.11-slim`、容器内时区 `Asia/Shanghai`（见 `Dockerfile`）；依赖及版本见 `requirements.txt`。本机（不用容器）运行需 Python 3.11 及以上：`xiaoxin_work_order/scheduling.py` 使用了 `enum.StrEnum`。
 
 用 `run.sh` 启动时整个项目挂到容器 `/app`，宿主机改 `.env` / `prompts/*.txt` / 代码后 `docker restart` 即可生效，无需重新 build；改 `requirements.txt` 例外（依赖装在镜像层）。**优先级不变**：显式 `export` / `docker -e` > `/app/.env` > `config.py` 内置默认值；用 `docker -e` 注入的值只在创建容器时固化，改值需重建容器。
 
@@ -182,7 +183,7 @@ from xiaoxin_work_order.db import (
 | `MAX_WORKERS` / `FIELD_WORKERS` / `POST_CALL_SLEEP` / `BATCH_DAY_SLEEP` / `SCHEDULE_TIME` | 并发与节奏 |
 | `RETRY_INTERVAL_HOURS` / `STABILITY_RECHECK_MINUTES` / `RETRY_WINDOW_END` / `MAX_RETRY_ATTEMPTS` / `SCHEDULER_POLL_SECONDS` | 每日批次的就绪探测与当日重试 |
 
-取值来源与缺失行为：`DB_*` / `QA_DB_*` / `GBASE_*` 的地址、账号、口令由数据库管理员提供（责任人占位）；`BACKEND_API_URL` 由后端取数接口提供方提供（责任人占位）；`LLM_URL` / `LLM_API_KEY` / `LLM_MODEL` / `QA_LLM_MODEL` 由模型服务提供方提供（责任人占位）。未在 `.env` 或环境变量中给出的键，回落到 `xiaoxin_work_order/config.py` 的同名内置默认值；`LLM_STREAM` 取值 `1` / `true` / `yes` / `on` 时启用流式，其余值按非流式处理。
+取值来源与缺失行为：`DB_*` / `QA_DB_*` / `GBASE_*` 的地址、账号、口令由数据库管理员提供（责任人占位）；`BACKEND_API_URL` 由后端取数接口提供方提供（责任人占位）；`LLM_URL` / `LLM_API_KEY` / `LLM_MODEL` / `QA_LLM_MODEL` 由模型服务提供方提供（责任人占位）；获取渠道占位：<由对应责任人在部署交付时经 `.env` 或显式环境变量下发>。未在 `.env` 或环境变量中给出的键，回落到 `xiaoxin_work_order/config.py` 的同名内置默认值；`LLM_STREAM` 取值 `1` / `true` / `yes` / `on` 时启用流式，其余值按非流式处理。
 
 运行参数内置默认值（`xiaoxin_work_order/config.py`）：`LLM_TEMPERATURE=0.1`、`LLM_TIMEOUT=120`、`LLM_MAX_RETRIES=3`、`LLM_QPS=2.0`、`LLM_STREAM=false`、`MAX_WORKERS=1`、`FIELD_WORKERS=6`、`POST_CALL_SLEEP=5`、`BATCH_DAY_SLEEP=2`、`SCHEDULE_TIME=01:00`、`RETRY_INTERVAL_HOURS=1`、`STABILITY_RECHECK_MINUTES=10`、`RETRY_WINDOW_END=23:00`、`MAX_RETRY_ATTEMPTS=24`、`SCHEDULER_POLL_SECONDS=60`；非凭据类键未在 `.env` 或环境变量中给出时回落到上述默认值。
 
@@ -194,7 +195,7 @@ from xiaoxin_work_order.db import (
 
 **8 字段提取**（字段清单、提示词文件名与并发/串行划分的唯一来源是 `xiaoxin_work_order/fields.py` 的 `FIELDS`，下面不再重复维护）：6 个独立字段并发（`device / business / cause / branch_actions / vendor_actions / symptom_detail`），业务 → `MAPPING` → 二级分类 → `MAPPING` → 故障现象串行；结果经 `clean_field()` 去 `<think>`/空格后按固定顺序组装 JSON。输出字段：
 
-`device` 设备、`business` 业务、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作、`vendor_actions` 厂商操作；另加 `create_time` 入库时间、`response_time` 模型耗时(ms)、`error_msg` 失败原因（完整定义见 `fields.py`）。
+`device` 设备、`business` 业务、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作、`vendor_actions` 厂商操作；另加 `create_time` 入库时间、`response_time` 模型耗时(ms)、`error_msg` 失败原因（由 `xiaoxin_work_order/pipelines/issue_pipeline.py` 的 `safe_run_model()` 与 `_build_final_df()` 生成）。
 
 **入库分流**：`fldColumn4`（厂商处理意见）有效 → `xxa_issues_records` + `xxa_complaint_word_cloud` + `xxa_bomc_qa_records`；无效 → `xxa_bomc_qa_non_vendor`（`vendor_actions` 置空）。写前按 `task_oid` 删旧。「有效」与 `to_text()` 共用 `common.BLANK_MARKERS`（空值 / `nan` /「无」/「无无」），模型输入归一与入库分流不再各判一套。
 
@@ -238,7 +239,6 @@ docker logs --tail 30 xiaoxin_work_order_qa
 
 **为什么去掉 `--env-file .env`**：它是 `docker run` 客户端在**创建容器**时把文件内容固化进容器环境变量，`docker restart` 不会重新解析；而显式环境变量优先级又高于 `config.py` 读 `.env`，结果就是「改了 `.env`、restart 后仍是旧值」。去掉后由 `config.py` 每次启动读挂载进来的 `/app/.env`，restart 才真正生效。想临时覆盖仍可用 `docker run -e KEY=VALUE`，但同样只在创建时固化。
 
-> **从旧版升级**：用旧 `run.sh`（带 `--env-file` 或 `./logs`、`./data` 分目录挂载）创建的容器，挂载与环境变量都是创建时固化的，**必须重建一次**：`docker rm -f xiaoxin_work_order_qa && sudo chown -R "$(id -u):$(id -g)" logs data && ./run.sh`。之后改配置只用 `docker restart`。
 
 ### 非 root 运行：写出的文件不用 sudo
 
@@ -282,6 +282,6 @@ python tests/check_prompts.py                             # 输出「全部一�
 ## 九、安全与维护提示
 
 - `.env` 随项目交付且填有真实凭据；**生产环境建议把 `.env` 从版本库移除**（bind mount 仍需宿主机上有这份文件），`.env.example` 可作为脱敏模板。注意 `Dockerfile` 的 `COPY . .` 会把构建时的 `.env` 打进镜像层，运行时虽被 bind mount 覆盖、不会生效，但镜像层里仍可取到旧凭据；敏感环境可把 `.env` 加进 `.dockerignore` 后重新 build。若改用 `docker -e` / 密钥管理注入，则改值需重建容器，与「restart 即生效」二选一。
-- 容器以 `--user "$(id -u):$(id -g)"` 非 root 运行，`logs/` / `data/` 产物属主为宿主机当前用户，无需 `sudo` 即可改删；从旧 root 容器升级需先 `chown` 一次。非 root 也意味着容器内不能装包或改系统文件，改 `requirements.txt` 仍需重新 build 镜像。
-- `.idea/` 是编辑器元数据，已从仓库移除；`.gitignore` / `.dockerignore` 仍保留忽略规则，防止再次提交。
+- 容器以 `--user "$(id -u):$(id -g)"` 非 root 运行，`logs/` / `data/` 产物属主为宿主机当前用户，无需 `sudo` 即可改删；非 root 也意味着容器内不能装包或改系统文件，改 `requirements.txt` 仍需重新 build 镜像。
+- `.idea/` 是编辑器元数据，当前仓库中仍保留该目录；`.gitignore` / `.dockerignore` 仍保留忽略规则，防止再次提交。
 - 改提示词 → 改 `prompts/*.txt` 并同步 `tests/source_snapshot.json`；改表结构/固定值 → 改 `xiaoxin_work_order/db/` 对应文件并同步 `xiaoxin_work_order/db/README.md` 的示例。
