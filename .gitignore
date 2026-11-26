@@ -1,0 +1,17 @@
+# 密钥外置文件
+.env
+
+# 运行产物
+logs/
+data/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/

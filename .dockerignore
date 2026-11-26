@@ -1,0 +1,11 @@
+.env
+logs/
+data/
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+*.log
+issue_focus_extraction_refactored.zip
