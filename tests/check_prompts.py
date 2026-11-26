@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """校验本地提示词与映射表是否仍与 tests/source_snapshot.json 基线逐字一致。
 
-基线在 tests/source_snapshot.json（零第三方依赖，不需要 PyYAML）。
+基线在 tests/source_snapshot.json（零第三方依赖）。
 改过 prompts/ 或 xiaoxin/llm/mappings.py 后跑一次；任一不一致退出码为 1。
 
     python tests/check_prompts.py

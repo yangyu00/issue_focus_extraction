@@ -204,7 +204,7 @@ rows = query_gbase_by_task_oids(["T202604010002"])
 }]
 ```
 
-字段对照：`TASK_TITLE` → 报障标题、`fld_faultcontent` → 报障内容、`fld_column_2` → 分公司处理意见。QA 流程用它生成 `data/gbase_<起>_<止>.xlsx` 明细，并拼进聚类输入。
+字段对照：`TASK_TITLE` → 报障标题、`fld_faultcontent` → 报障内容、`fld_column_2` → 分公司处理意见。QA 流程用它生成 `data/gbase_<起>_<止>.xlsx` 明细；聚类输入由 `task_oid` / `symptom` / `symptom_detail` / `cause` / `formatted_actions` 拼成，不含 GBase 字段。
 
 ### 5.4 写：标准问答对
 

@@ -1,4 +1,4 @@
-# issue_focus_extraction（模块化重构版）
+# issue_focus_extraction
 
 工单解析入库 + QA 知识生成。
 
@@ -17,7 +17,7 @@
 ```bash
 python -m xiaoxin.cli.app --mode daily                       # 只跑昨天一次
 python -m xiaoxin.cli.app --mode date --date 2026-04-01       # 跑指定单日
-python -m xiaoxin.cli.app --mode batch --start ... --end ... --at 02:00 --no-run-now
+python -m xiaoxin.cli.app --mode schedule --at 02:00 --no-run-now
 python -m xiaoxin.cli.generate_qa --start ... --end ... --qa-excel          # 额外导出 QA Excel
 python -m xiaoxin.cli.generate_qa --enrich-excel ./data/包月费问题.xlsx     # 反查 GBase 明细
 python -m xiaoxin.cli.verify_env                                          # 上线前只读自检
@@ -25,7 +25,7 @@ python tests/smoke_test.py                                     # 离线回归
 python tests/check_prompts.py                                  # 提示词/映射基线
 ```
 
-命令行入口统一收敛在 `xiaoxin/cli/`：根目录不再保留 `app.py` / `generate_qa.py` / `verify_env.py` 这类只为兼容旧调用路径而存在的转发壳，参数解析与调度逻辑只保留一份；Dockerfile 的 `CMD` 也直接指向 `xiaoxin.cli.app`。容器启动统一走根目录的 [`run.sh`](run.sh)（纯 `docker run`，不使用 docker compose），用法见 [`run.sh使用说明.txt`](run.sh使用说明.txt)。
+命令行入口统一收敛在 `xiaoxin/cli/`，参数解析与调度逻辑只保留一份；Dockerfile 的 `CMD` 也直接指向 `xiaoxin.cli.app`。容器启动统一走根目录的 [`run.sh`](run.sh)（纯 `docker run`，不使用 docker compose），用法见 [`run使用说明.txt`](run使用说明.txt)。
 
 ---
 
@@ -34,7 +34,7 @@ python tests/check_prompts.py                                  # 提示词/映�
 ```
 issue_focus_extraction/
 ├── run.sh                     # docker run 启动脚本（常驻服务 / 一次性任务）
-├── run.sh使用说明.txt          # run.sh 的使用方法
+├── run使用说明.txt          # run.sh 的使用方法
 ├── README.md                  # 本文件：项目级说明
 ├── .env / .env.example        # 本地配置 / 脱敏配置模板
 ├── .gitignore / .dockerignore
@@ -52,7 +52,7 @@ issue_focus_extraction/
 └── xiaoxin/                   # 业务包
     ├── __init__.py
     ├── config.py              # 集中配置（PROJECT_PATH 指向仓库根）
-    ├── logging_setup.py       # loguru 日志（原 utils.py）
+    ├── logging_setup.py       # loguru 日志
     ├── common.py              # 跨层纯函数（to_text / is_valid_content / dedup_device_value）
     ├── api/
     │   └── backend.py         # 后端取数接口（HTTP，只读）
@@ -96,7 +96,7 @@ issue_focus_extraction/
 
 ## 五、数据库模块（`xiaoxin/db/`）
 
-业务代码现在只需要这样用，不再出现 `create_engine` / `to_sql` / `DELETE` / `INSERT`：
+业务代码统一从 `xiaoxin.db` 导入：
 
 ```python
 from xiaoxin.db import (
@@ -110,7 +110,7 @@ from xiaoxin.db import (
 
 | 文件 | 管什么 |
 | --- | --- |
-| `connections.py` | 三套数据源的连接/引擎工厂，按需创建并缓存 |
+| `connections.py` | 三套数据源的连接/引擎工厂；`app_engine()` / `qa_engine()` 按需创建并缓存，`gbase_connection()` / `qa_connection()` 每次调用新建、用完即关 |
 | `app_records.py` | `xxa_issues_records` / `xxa_complaint_word_cloud` / `xxa_bomc_qa_records` / `xxa_bomc_qa_non_vendor` |
 | `qa_knowledge.py` | 读 `xxa_bomc_qa_non_vendor`、写 `xxa_city_qa_knowledge` |
 | `gbase.py` | 只读 `opera.xiaoxin` |
@@ -124,11 +124,13 @@ from xiaoxin.db import (
 - CLI 参数与默认值、`schedule` 每日 `01:00` 调度、启动时先跑昨天；
 - `Dockerfile` 的 `CMD`、`run.sh` 的 `docker run` 参数（`--env-file` / 卷挂载 / 重启策略）；
 - 环境变量优先级：显式 `export` > `.env` > `config.py` 内置默认值；日志文件名与轮转；
+- 日志契约：`logs/INFO` / `logs/ERROR` 下按天 `00:00` 轮转、保留 180 天、`compression=None`；文件名前缀 `xiaoxin-info` / `xiaoxin-error` / `generate_qa_knowledge-info` / `generate_qa_knowledge-error`（见 `xiaoxin/config.py` / `xiaoxin/logging_setup.py`）。
 - 后端接口字段（`taskOid / lastTime / taskTitle / fldFaultcontent / fldColumn2 / fldColumn4`）、`code==200 && success` 校验；
-- 8 字段输出顺序与清洗规则、映射链、`/no_think` 后缀、25 条 `MAPPING` 与 9 段提示词（基线逐字未动）；
+- 8 字段输出顺序与清洗规则、映射链、`/no_think` 后缀、25 条 `MAPPING` 与 9 段提示词；
 - 4 张表的表名/列名、`key_issues` 与 `key_word` 均取 `symptom`、按 `fldColumn4` 分流、写前按 `task_oid` 删旧；
 - QA 过滤规则（保留 `symptom_detail != "其他"`、剔除 `branch_actions` 等于 `[{"operation":"无","result":"无","suggestion":"无"}]` 的记录）、`CHUNK_SIZE=400`、按 `symptom` 分组、Excel 文件名格式；
 - QA 表列顺序 `question, answer, knowledge_source, work_id, name, city, city_text, task_oids` 与固定值；
+- `--enrich-excel <XLSX>` 输入契约（属外部依赖）：输入 Excel 必须含 `matched_issue_ids` 列；获取渠道占位：由 `--qa-excel` 导出的 `data/qa_<起>_<止>.xlsx` 提供，责任人占位：QA 结果提供方；文件不存在或缺该列时记 ERROR 日志并终止，输出 `<输入名>_gbase_result.xlsx`。
 - 并发与节奏参数（`MAX_WORKERS` / `FIELD_WORKERS` / `LLM_QPS` / `*_SLEEP`）。
 
 连接按需懒加载并缓存，import 时不建引擎；`DELETE` 使用 SQLAlchemy `expanding` 参数绑定 + 表名白名单。
@@ -151,6 +153,8 @@ from xiaoxin.db import (
 
 取值来源与缺失行为：`DB_*` / `QA_DB_*` / `GBASE_*` 的地址、账号、口令由数据库管理员提供（责任人占位）；`BACKEND_API_URL` 由后端取数接口提供方提供（责任人占位）；`LLM_URL` / `LLM_API_KEY` / `LLM_MODEL` / `QA_LLM_MODEL` 由模型服务提供方提供（责任人占位）。未在 `.env` 或环境变量中给出的键，回落到 `xiaoxin/config.py` 的同名内置默认值；`LLM_STREAM` 取值 `1` / `true` / `yes` / `on` 时启用流式，其余值按非流式处理。
 
+运行参数内置默认值（`xiaoxin/config.py`）：`LLM_TEMPERATURE=0.1`、`LLM_TIMEOUT=120`、`LLM_MAX_RETRIES=3`、`LLM_QPS=2.0`、`LLM_STREAM=false`、`MAX_WORKERS=1`、`FIELD_WORKERS=6`、`POST_CALL_SLEEP=5`、`BATCH_DAY_SLEEP=2`、`SCHEDULE_TIME=01:00`；非凭据类键未在 `.env` 或环境变量中给出时回落到上述默认值。
+
 运行前需可达：后端取数接口、app MySQL、QA MySQL、GBase、模型服务。常驻进程只有 `xiaoxin.cli.app`；`xiaoxin.cli.generate_qa` / `xiaoxin.cli.verify_env` / `tests/*` 为一次性任务。
 
 ---
@@ -165,13 +169,13 @@ from xiaoxin.db import (
 
 后端接口返回空结果时该日期批次直接跳过、不写库；响应缺少 `taskOid` / `fldColumn4` 时记 ERROR 日志并跳过，不写库（见 `xiaoxin/pipelines/issue_pipeline.py`）。
 
-**QA 生成**：读 `xxa_bomc_qa_non_vendor` → 过滤 → 按 `symptom` 分组、每 400 条一批 → 查 GBase 补原文 → 模型聚类 → 统一写 `xxa_city_qa_knowledge`。详细字段示例见 `xiaoxin/db/README.md`。
+**QA 生成**：读 `xxa_bomc_qa_non_vendor` → 过滤 → 按 `symptom` 分组、每 400 条一批 → 查 GBase 明细另存 `data/gbase_<起>_<止>.xlsx`（不进入模型输入）→ 模型聚类 → 统一写 `xxa_city_qa_knowledge`。详细字段示例见 `xiaoxin/db/README.md`。
 
 ---
 
 ## 九、部署与自检
 
-镜像构建一次即可，之后只通过 `docker run` 启动，项目不再提供 docker compose 文件：
+镜像构建一次即可，之后只通过 `docker run` 启动：
 
 ```bash
 docker build -t xiaoxin:v1 .
@@ -180,7 +184,9 @@ cp .env.example .env          # 首次：按实际环境填写（已有 .env 可
 docker logs -f xiaoxin_qa     # 查看日志
 ```
 
-[`run.sh`](run.sh) 把 `docker run` 的 `--env-file`、卷挂载、容器名与重启策略固化下来；不带参数启动常驻服务，带参数时用一次性容器执行指定命令（用完即删）。完整用法见 [`run.sh使用说明.txt`](run.sh使用说明.txt)，常见的一次性任务：
+[`run.sh`](run.sh) 把 `docker run` 的 `--env-file`、卷挂载、容器名与重启策略固化下来；不带参数启动常驻服务，带参数时用一次性容器执行指定命令（用完即删）。完整用法见 [`run使用说明.txt`](run使用说明.txt)，常见的一次性任务：
+
+[`run.sh`](run.sh) 固化取值：镜像 `xiaoxin:v1`（`IMAGE` 覆盖）、常驻容器名 `xiaoxin_qa`（`NAME` 覆盖）、`--env-file .env`、`--restart unless-stopped`、`-v ./logs:/app/logs`、`-v ./data:/app/data`；不带参数常驻，带参数以 `--rm` 一次性执行；缺 `.env` 或镜像不存在时报错退出。
 
 ```bash
 ./run.sh python -m xiaoxin.cli.app --mode batch --start 2026-04-01 --end 2026-04-28
@@ -198,7 +204,7 @@ python tests/smoke_test.py                                # 非流式 / --stream
 python tests/check_prompts.py                             # 输出「全部一致：9 段提示词 + 25 条映射」
 ```
 
-`xiaoxin.cli.verify_env` 每项输出 `[PASS]` / `[FAIL]`，末行输出「汇总：N 项，通过 M，失败 K」，全部通过时退出码为 0、否则为 1；`tests/smoke_test.py` 末行输出 `ALL_TESTS_PASSED (stream=true|false)`。
+`xiaoxin.cli.verify_env` 每项输出 `[PASS]` / `[FAIL]`，倒数第二行输出「汇总：N 项，通过 M，失败 K」，最后一行输出说明文案，全部通过时退出码为 0、否则为 1；`tests/smoke_test.py` 末行输出 `ALL_TESTS_PASSED (stream=true|false)`。
 
 `xiaoxin.cli.verify_env` 全部只读，不写业务表；`smoke_test.py` 起本地伪造模型服务，不碰真实数据库与接口。
 
