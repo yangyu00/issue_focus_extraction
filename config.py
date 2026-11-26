@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """集中配置。
 
 所有连接信息、运行参数集中在此，支持用同名环境变量覆盖，便于 docker / 生产环境外置密钥。
-默认值保持与重构前各文件一致；若线上 DB 端口/地址不同，直接设环境变量即可，不必改代码。
+若线上 DB 端口/地址不同，直接设环境变量即可，不必改代码。
 """
 import os
 from urllib.parse import quote_plus
@@ -65,8 +64,7 @@ def _b(name, default):
 
 
 # ================= MySQL：app.py 每日 / 批量入库 =================
-# 注意：原 app.py 用 134.84.22.233:8086，原 app_batch.py 用 134.84.22.233:6306。
-# 合并为单入口后默认取 6306；若线上实际是 8086，设 DB_PORT=8086 即可。
+# 默认端口 6306；如线上端口不同，设 DB_PORT 覆盖。
 MYSQL_CONFIG = {
     "host": _s("DB_HOST", "134.84.22.233"),
     "port": _i("DB_PORT", 6306),
@@ -77,7 +75,7 @@ MYSQL_CONFIG = {
 }
 
 # ================= MySQL：generate_qa 读取与写库 =================
-# 原 generate_qa.py 指向 172.21.224.71:6306，与 app 不在同一地址，故单独保留一份。
+# QA 读写与 app 入库不在同一地址，单独保留一份配置。
 QA_MYSQL_CONFIG = {
     "host": _s("QA_DB_HOST", "172.21.224.71"),
     "port": _i("QA_DB_PORT", 6306),
@@ -87,7 +85,7 @@ QA_MYSQL_CONFIG = {
     "charset": "utf8mb4",
 }
 
-# ================= GBase（opera 库），原 gbase_excel_query.py =================
+# ================= GBase（opera 库） =================
 GBASE_CONFIG = {
     "host": _s("GBASE_HOST", "134.85.16.139"),
     "port": _i("GBASE_PORT", 5258),
@@ -101,7 +99,7 @@ GBASE_CONFIG = {
 BACKEND_API_URL = _s("BACKEND_API_URL", "http://134.84.22.233:6308/xxa/queryListByTime")
 
 # ================= 直连大模型（OpenAI 兼容 /v1/chat/completions） =================
-# yml 里模型名是 CXY-Qwen3-32B；generate_qa 原来用 cxy-deepseek-v3-0324，二者分别可配。
+# 提取与 QA 聚类分别用 LLM_MODEL / QA_LLM_MODEL 配置。
 LLM_URL = _s("LLM_URL", "http://134.84.255.13:23471/v1/chat/completions")
 LLM_API_KEY = _s("LLM_API_KEY", "sk-PxwP10Ndr_vJZ-s2sbTE2A")
 LLM_MODEL = _s("LLM_MODEL", "CXY-Qwen3-32B")
@@ -115,7 +113,7 @@ LLM_STREAM = _b("LLM_STREAM", False)  # 默认非流式；设 LLM_STREAM=true �
 # ================= 运行参数 =================
 MAX_WORKERS = _i("MAX_WORKERS", 1)              # 工单级并发（工作流内部另有字段级并发）
 FIELD_WORKERS = _i("FIELD_WORKERS", 6)          # 单条工单 8 字段提取时的字段级并发
-POST_CALL_SLEEP = _f("POST_CALL_SLEEP", 5)      # 原 safe_run_model 每条调用后的固定停顿
+POST_CALL_SLEEP = _f("POST_CALL_SLEEP", 5)      # 每条模型调用后的固定停顿
 BATCH_DAY_SLEEP = _f("BATCH_DAY_SLEEP", 2)      # 批量任务每天之间的停顿
 SCHEDULE_TIME = _s("SCHEDULE_TIME", "01:00")    # 每日定时执行时间
 PROMPTS_DIR = os.path.join(PROJECT_PATH, "prompts")

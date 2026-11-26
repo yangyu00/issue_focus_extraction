@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """QA 知识生成（单文件自包含）。
 
 基于 xxa_bomc_qa_non_vendor 的解析结果：按时间取数 → 过滤 → 按 symptom 分组 →
 查 GBase 补工单详情 → 直连大模型聚类生成标准问答对 → 写入 xxa_city_qa_knowledge，
 并导出 GBase 明细 Excel。
 
-本次重构把原 gbase_excel_query.py / sql_query.py 的业务全部内联到本文件，
-不再需要额外的 GBase 查询模块；QA 聚类提示词改由 prompts/qa_cluster.txt 维护。
+GBase 查询与 MySQL 按 id 反查均在本文件内；QA 聚类提示词由 prompts/qa_cluster.txt 维护。
 """
 import argparse
 import ast
@@ -43,7 +41,7 @@ QA_TABLE = "xxa_city_qa_knowledge"
 CHUNK_SIZE = 400
 
 
-# ================= GBase（opera 库）查询：原 gbase_excel_query.py =================
+# ================= GBase（opera 库）查询 =================
 def query_gbase_by_task_oids(task_oid_list: list) -> list:
     """按 TASK_OID 列表查询 GBase opera.xiaoxin 的工单原始字段。"""
     if not task_oid_list:
@@ -73,7 +71,7 @@ def query_gbase_by_task_oids(task_oid_list: list) -> list:
         return []
 
 
-# ================= MySQL 按 id 查记录：原 sql_query.py =================
+# ================= MySQL 按 id 查记录 =================
 def get_records_by_ids(id_list) -> pd.DataFrame:
     """根据 id 列表查询 xxa_bomc_qa_non_vendor（参数化，兼容任意长度）。"""
     if not id_list:
@@ -108,7 +106,7 @@ def parse_matched_issue_ids(value) -> list:
 def enrich_qa_excel(input_xlsx: str):
     """读 QA Excel 的 matched_issue_ids → 反查 task_oid → 查 GBase → 另存明细 Excel。
 
-    对应原 gbase_excel_query.py 的 main()，作为手动辅助命令保留。
+    由 --enrich-excel 调用的手动辅助命令。
     """
     if not os.path.exists(input_xlsx):
         logger.error(f"文件不存在: {input_xlsx}")
@@ -367,7 +365,7 @@ def process_non_vendor_data(start_time: str, end_time: str, save_qa_excel: bool 
             pd.DataFrame(all_qa_data).to_excel(qa_output_file, index=False)
             logger.info(f"成功保存 {len(all_qa_data)} 条 QA 对到 {qa_output_file}")
 
-        # 统一写库一次（修复原来「循环内写一次 + 结尾再写一次」造成的重复入库）
+        # 全部 symptom 组处理完成后统一写库一次
         if all_qa_data:
             save_to_database(all_qa_data)
         else:

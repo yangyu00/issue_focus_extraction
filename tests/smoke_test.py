@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """离线回归测试：本地起一个伪造的 OpenAI 兼容服务，验证整条直连调用链。
 
 不访问真实 MySQL / GBase / 后端接口 / 模型服务。
@@ -115,7 +114,7 @@ def main():
     assert " " not in data["branch_actions"]
     assert json.loads(data["branch_actions"])[0]["operation"] == "重启光猫"
     assert "<think>" not in raw
-    # 两个「映射」代码节点确实把候选类别注入到了下游提示词里
+    # 断言 MAPPING 把候选类别注入到了下游提示词里
     assert any("宽带办理与维护、宽带计费、宽带上网、宽带带宽" in p and "不可新增或自行扩展" in p
                for p in RECORDED), "映射节点1未生效"
     assert any("宽带开通/取消、宽带竣工" in p and "优先在以下预定义的类别" in p

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """日志配置。"""
 from config import *
 from loguru import logger

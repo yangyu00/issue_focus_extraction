@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """上线前只读连通性自检。
 
 检查 5 项：app 入库 MySQL、QA MySQL、GBase、后端取数接口、直连模型服务。

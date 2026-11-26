@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""小信智能体摘要提取 yml 中「映射 / 映射2」两个代码节点的分类映射表，逐字转写。"""
+"""分类映射表 MAPPING；与 tests/source_snapshot.json 的 mapping 基线逐字一致，由 tests/check_prompts.py 校验。"""
 
 MAPPING = {
     "宽带业务": "宽带办理与维护、宽带计费、宽带上网、宽带带宽",

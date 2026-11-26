@@ -1,24 +1,13 @@
-# issue_focus_extraction（重构版）
+# issue_focus_extraction
 
-工单解析入库 + QA 知识生成。本次按三项要求做了合并与去 Dify 改造。
-
-## 一、取数校验（按约定顺序，命中即停）
-
-| 项 | 结果 |
-| --- | --- |
-| 地址 1 | `https://codeload.github.com/yangyu00/issue_focus_extraction/tar.gz/refs/heads/master` |
-| HTTP | 200（GET 下载完整包体，36628 字节） |
-| 包体校验 | `gzip -t` 通过；解压后有 **25 个文件** |
-| 结论 | **地址 1 命中即停**，未尝试地址 2；全程做包体校验，未用 HEAD、网页内容、SNAPSHOT 或推测补全 |
-
-> 沙盒不允许回填文件 mtime，`tar` 首次会报 `Cannot utime` 警告；用 `tar -m` 关闭 mtime 回填后，按「解压后有文件」判据复核为成功。地址 2 未被使用。
+工单解析入库 + QA 知识生成。
 
 ## 二、三个功能与运行方式
 
 | 功能 | 命令 | 说明 |
 | --- | --- | --- |
 | 1. 每日定时处理 | `python app.py` | 默认：启动时先跑昨天，然后每天 `01:00` 跑昨天，常驻调度 |
-| 2. 手动批量处理 | `python app.py --mode batch --start 2026-04-01 --end 2026-04-28` | 按天补跑，原 `app_batch.py` 能力 |
+| 2. 手动批量处理 | `python app.py --mode batch --start 2026-04-01 --end 2026-04-28` | 按天补跑 |
 | 3. 手动生成 QA | `python generate_qa.py --start 2026-04-01 --end 2026-04-28` | 基于已入库结果聚类生成标准问答对 |
 
 补充用法：
@@ -28,34 +17,31 @@ python app.py --mode daily                       # 只跑昨天一次
 python app.py --mode date --date 2026-04-01       # 跑指定单日
 python app.py --mode batch --start ... --end ... --at 02:00 --no-run-now
 python generate_qa.py --start ... --end ... --qa-excel          # 额外导出 QA Excel
-python generate_qa.py --enrich-excel ./data/包月费问题.xlsx     # 反查 GBase 明细（原 gbase_excel_query 的手动工具）
+python generate_qa.py --enrich-excel ./data/包月费问题.xlsx     # 反查 GBase 明细
 ```
 
 ## 三、目录结构
 
 ```
-app.py                  # 合并后的单入口：每日调度 / 批量补跑 / 单日
-generate_qa.py          # QA 生成（GBase 查询、sql_query 逻辑、聚类、写库、Excel 全在本文件）
+app.py                  # 单入口：每日调度 / 批量补跑 / 单日
+generate_qa.py          # QA 生成（GBase 查询、按 id 反查、聚类、写库、Excel 全在本文件）
 .env                    # 本地运行配置，密码 / API Key 已按实际环境照实填写
 config.py               # 集中配置，启动时加载 .env，也支持环境变量覆盖
 utils.py                # loguru 日志
 llm_client.py           # OpenAI 兼容 chat/completions 直连客户端（限流/重试/流式/清洗）
 prompt_loader.py        # 本地提示词加载与占位符注入
-issue_workflow.py       # yml 工作流的直连编排（8 字段提取 + 映射链）
-mappings.py             # yml 两个「映射」代码节点的分类字典（自动逐字转写）
+issue_workflow.py       # 8 字段提取 + 映射链的直连编排
+mappings.py             # 分类映射字典 MAPPING（由 tests/check_prompts.py 校验）
 prompts/                # 全部提示词，纯文本维护
   device.txt  business.txt  subclass.txt  symptom.txt
   symptom_detail.txt  cause.txt  branch_actions.txt  vendor_actions.txt
   qa_cluster.txt
-小信智能体摘要提取.yml  # 仅作历史备份/对照，运行时不再读取，也不再调用 Dify
 requirements.txt
 ```
 
-已删除：`app_batch.py`（并入 app.py）、`dify.py`（不再调用）、`gbase_excel_query.py` + `sql_query.py`（并入 generate_qa.py）、`model.py`（替换为 llm_client.py + prompts/qa_cluster.txt）、`CLEANUP_NOTES.md`（旧清理说明已过时）。
+## 四、工作流：8 字段提取
 
-## 四、工作流：从 Dify 改为直连模型
-
-原 yml 的结构与现在的对应关系：
+字段提取的调用结构：
 
 ```
 开始(sys.query = 标题/描述/分公司处理意见/厂商处理意见)
@@ -67,17 +53,17 @@ requirements.txt
   └─→ 故障详情 LLM ─────────────────────────────┘
 ```
 
-- 两个「映射」代码节点 → `mappings.py` 的字典查表（业务→二级分类候选、二级分类→焦点问题候选），**不消耗模型调用**。
-- 8 个 LLM 节点 → `llm_client.chat()` 直连 `LLM_URL`，6 个独立字段并发，业务链串行；提示词逐字来自 yml，放在 `prompts/*.txt`。
-- 「代码执行」节点 → `issue_workflow.clean_field()`：去换行、去 `<think>`、去所有空格，按原顺序组装 8 字段 JSON。
-- 「直接回复」节点 → `run_extraction()` 返回该 JSON 字符串，`app.py` 的 `process_model_output_for_db()` 无需改动。
-- `/no_think` 后缀按 yml 原样保留在各提示词里。
+- `mappings.py` 的 `MAPPING` 字典查表（业务→二级分类候选、二级分类→焦点问题候选），**不消耗模型调用**。
+- 8 个字段由 `llm_client.chat()` 直连 `LLM_URL` 提取：6 个独立字段并发，业务链串行；提示词放在 `prompts/*.txt`。
+- `issue_workflow.clean_field()` 去换行、去 `<think>`、去所有空格，按 `OUTPUT_KEYS` 顺序组装 8 字段 JSON。
+- `run_extraction()` 返回该 JSON 字符串，由 `app.py` 的 `process_model_output_for_db()` 解析为入库字段。
+- `/no_think` 后缀保留在除 `device.txt` 外的 8 段提示词里；`device.txt` 不含该后缀。
 
-输出字段不变：`device / business / subclass / symptom / symptom_detail / cause / branch_actions / vendor_actions`。
+输出字段：`device / business / subclass / symptom / symptom_detail / cause / branch_actions / vendor_actions`。
 
 ## 五、配置与环境变量
 
-`config.py` 保留原默认值，项目根目录的 `.env` 已按实际环境填好并会由 `config.py` 自动加载；全部配置也可用同名环境变量覆盖：
+`config.py` 在启动时加载项目根目录的 `.env`；全部配置也可用同名环境变量覆盖。未提供时取 `config.py` 内置默认值，`.env` 文件不存在则跳过加载：
 
 | 变量 | 默认值 | 用途 |
 | --- | --- | --- |
@@ -85,41 +71,37 @@ requirements.txt
 | `QA_DB_HOST` / `QA_DB_PORT` / … | `172.21.224.71:6306` | generate_qa 读写 MySQL |
 | `GBASE_HOST` / `GBASE_PORT` / `GBASE_USER` / `GBASE_PASSWORD` / `GBASE_DB` | `134.85.16.139:5258` / `busiopera` / `opera` | GBase 明细查询 |
 | `BACKEND_API_URL` | `http://134.84.22.233:6308/xxa/queryListByTime` | 取数接口 |
-| `LLM_URL` / `LLM_API_KEY` | `http://134.84.255.13:23471/v1/chat/completions` | 直连模型服务 |
+| `LLM_URL` | `http://134.84.255.13:23471/v1/chat/completions` | 直连模型服务 |
 | `LLM_MODEL` / `QA_LLM_MODEL` | `CXY-Qwen3-32B` / `cxy-deepseek-v3-0324` | 提取 / QA 聚类分别用 |
 | `LLM_QPS` / `LLM_MAX_RETRIES` / `LLM_TIMEOUT` / `LLM_STREAM` | `2` / `3` / `120` / `false` | 限流、重试、超时、流式开关 |
 | `MAX_WORKERS` / `FIELD_WORKERS` | `1` / `6` | 工单级 / 字段级并发 |
 | `POST_CALL_SLEEP` / `BATCH_DAY_SLEEP` / `SCHEDULE_TIME` | `5` / `2` / `01:00` | 节奏控制 |
+| `QA_DB_USER` / `QA_DB_PASSWORD` / `QA_DB_NAME` / `LLM_API_KEY` | 取值见 `config.py` 内置默认值或 `.env`（属外部依赖，由部署方／模型服务责任人提供） | 数据库与模型鉴权，取值不写入文档 |
+| `LLM_TEMPERATURE` | `0.1` | 模型采样温度 |
 
-## 六、重构时一并处理的几处历史问题
+补充运行约束与外部依赖：
 
-1. **DB 端口不一致**：原 `app.py` 用 `8086`，`app_batch.py` / `generate_qa.py` / `sql_query.py` 用 `6306`；合并后默认 `6306`，如线上是 8086 设 `DB_PORT=8086`。
-2. **DB 地址不一致**：`generate_qa.py` 原来指向 `172.21.224.71`，单独保留为 `QA_DB_*`，避免误写库。
-3. **硬编码密钥**：Dify API Key、模型 API Key、数据库密码原先散落在代码里，现统一在 `config.py` 并支持环境变量覆盖。
-4. **`generate_qa.py` 的假数据覆盖**：原代码在 `as_completed` 里把模型返回的 `qa_list` 强行替换为两条写死测试数据，且循环内写库一次、结尾又全量写库一次（重复入库）。已删除假数据，改为结尾统一写库一次。
-5. **提示词内嵌**：`model.py` 的 QA 提示词与 Dify yml 的 8 段提示词全部迁到 `prompts/`，改提示词不用改 Python 代码。
-6. `generate_qa.py` 的日期不再写死，改由 `--start/--end` 传入。
+- 进程与上游：常驻进程只有 `app.py`（`schedule` 循环，启动时先跑昨天，再按 `SCHEDULE_TIME` 每日执行）；`generate_qa.py` / `verify_env.py` / `tests/*` 为一次性任务，由 `docker compose run --rm` 临时启动。运行前需可达：后端取数接口 `BACKEND_API_URL`、app 入库 MySQL（`MYSQL_CONFIG`）、QA MySQL（`QA_MYSQL_CONFIG`）、GBase（`GBASE_CONFIG`）、模型服务（`LLM_URL`）。上述地址与凭据的获取渠道／责任人：由部署方提供（属外部依赖）。
+- 运行基线：镜像基于 `python:3.11-slim`（`Dockerfile`），容器内 `TZ=Asia/Shanghai`；依赖版本见 `requirements.txt`。并发为两级：`MAX_WORKERS`（默认 1）控制工单级并发，`FIELD_WORKERS`（默认 6）控制单条工单的字段级并发；模型侧由 `LLM_QPS` 全局限流。
 
-## 七、原 ReadMe 要点（保留）
+## 七、接口与入库字段
 
-- 调用后端（魏玉磊）接口：输入是时间，返回 `taskOid`、`lastTime`、`fld_faultcontent`（报障内容）、`fld_column_2`（分公司处理意见）、`fld_column_4`（厂商处理意见）、`fld_question_type_province`（省公司确认问题类型）；输入时间取 `lastTime`、`start_time`、`end_time` 中的最新日期。
+- 后端取数接口由 `app.py` 的 `fetch_data_from_api(start_time, end_time)` 以 `startTime` / `endTime` 调用，日期由 `--mode` 参数或每日调度传入；响应需满足 `code == 200` 且 `success` 为真，`result` 为工单列表。工单字段在 `app.py` 中按 `taskOid` / `lastTime` / `taskTitle` / `fldFaultcontent` / `fldColumn2` / `fldColumn4` 读取；GBase `xiaoxin` 表使用 `TASK_OID` / `TASK_TITLE` / `fld_faultcontent` / `fld_column_2`。
 - 入库字段：`business` 业务、`device` 设备、`subclass` 二级分类、`symptom` 故障现象、`symptom_detail` 故障详情、`cause` 故障原因、`branch_actions` 分公司操作、`vendor_actions` 厂商操作、`create_time` 入库时间、`response_time` 模型响应耗时、`error_msg` 失败原因。
 - `generate_qa.py` 在 app 入库结果的基础上，生成某段时间的 QA 知识。
+- 入库分流：`app.py` 按 `fldColumn4` 是否有效分流——有效数据写入 `xxa_issues_records`（`key_issues` 取 `symptom`）、`xxa_complaint_word_cloud`（`key_word` 取 `symptom`）、`xxa_bomc_qa_records`；无厂商处理意见的数据写入 `xxa_bomc_qa_non_vendor`。写入前按 `task_oid` 删除同名旧记录；四张表名见 `verify_env.py` 的 `APP_TABLES`。
+- QA 生成数据契约：`generate_qa.py` 读取 `xxa_bomc_qa_non_vendor`，过滤 `symptom_detail == "其他"` 与 `branch_actions` 的空操作数组，按 `symptom` 分组、每 `CHUNK_SIZE=400` 条分批聚类，结果统一写入 `xxa_city_qa_knowledge`（列顺序 `question, answer, knowledge_source, work_id, name, city, city_text, task_oids`）。
 
 ## 八、部署与上线自检
 
-### 8.1 补齐 Docker 部署（原 ReadMe 的三处问题）
+### 8.1 Docker 部署
 
-原 `ReadMe.md` 给的两条命令有三个落地障碍，本次已补齐：
-
-1. `docker build -t xiaoxin:v1 .` 与 `docker run ... xiaoxin_qa:v1` **镜像名不一致**，run 会直接报找不到镜像。
-2. 仓库里**根本没有 Dockerfile**。
-3. `-p 8887-8889:8887-8889` 映射了端口，但重构后（以及原版）代码都是 CLI 常驻进程 + `schedule` 循环，**不监听任何 HTTP 端口**，端口映射无效。如需对外提供触发接口，要另加一层 Web 服务，不在本项目范围内。
+当前代码是 CLI 常驻进程（`schedule` 循环），不监听任何 HTTP 端口，容器不映射端口。如需对外提供触发接口，要另加一层 Web 服务，不在本项目范围内。
 
 现在可直接构建运行：
 
 ```bash
-# .env 已随项目提供且填好真实值，无需再生成；只确认 DB_PORT 是否符合你的库
+# .env 已随项目提供且填好真实值；只确认 DB_PORT 是否符合你的库
 docker build -t xiaoxin:v1 .
 docker run -dit --name xiaoxin_qa \
   --env-file .env \
@@ -142,16 +124,9 @@ docker compose run --rm xiaoxin python verify_env.py
 
 `config.py` 会在启动时加载项目根目录的 `.env`（自实现，未引入 python-dotenv 依赖）。优先级：**显式 `export` 的环境变量 > `.env` > `config.py` 内置默认值**。
 
-`.env` 已按个人局域网的实际环境把数据库密码、GBase 密码、模型 API Key **照实填好**，随项目一起交付；`.gitignore` / `.dockerignore` 都不再排除它，构建镜像时会被 `COPY . .` 带进去，`docker-compose.yml` 另用 `env_file: .env` 注入，两条通道取值一致，开箱即跑。
+`.env` 已按个人局域网的实际环境把数据库密码、GBase 密码、模型 API Key **照实填好**，随项目一起交付；`.gitignore` / `.dockerignore` 均不排除它，构建镜像时会被 `COPY . .` 带进去，`docker-compose.yml` 另用 `env_file: .env` 注入，两条通道取值一致，开箱即跑。
 
-值全部由原仓库源码逐项导出，未做任何改写：`app.py` / `app_batch.py` / `generate_qa.py` 的 `DB_CONFIG`、`gbase_excel_query.py` 的 `GBASE_CONFIG`、`model.py` 生效的 `URL` / `API_KEY` / `MODEL`、以及取数 `API_URL`。Dify 的 `app-xxx` key 已随去 Dify 一起作废，没有写入 `.env`。
-
-两处历史不一致留在 `.env` 注释里备查，不影响运行：
-
-- 原 `app.py` 的 DB 端口是 `8086`，其余文件是 `6306`；合并成单入口后只能取一个，这里按多数文件取 `6306`。若每日任务实际连的是 8086，改 `.env` 里的 `DB_PORT` 即可。
-- 已删除的 `sql_query.py` 里密码写作 `Nntslgkpt*2024`，与其余文件的 `Nttslgkpt*2024` 差一个字母；重构后「按 id 反查」统一走 `QA_DB_*`，以此为准。
-
-### 8.3 上线自检（补上「未连真实环境」这一环）
+### 8.3 上线自检
 
 ```bash
 python verify_env.py                          # 5 项全查
@@ -168,26 +143,10 @@ python tests/smoke_test.py --stream   # 流式 SSE
 python tests/check_prompts.py         # 提示词 / 映射表基线比对（零依赖）
 ```
 
-- **`smoke_test.py`**：本地起一个伪造的 OpenAI 兼容服务，验证 8 字段提取 → 两个映射节点注入候选类别 → `<think>`/空格清洗 → QA 聚类 JSON 解析 → `app.safe_run_model` 元数据。不碰真实数据库与接口。
-- **`check_prompts.py`**：把 `prompts/*.txt` 与 `mappings.py` 跟 `tests/source_snapshot.json` 逐字比对。快照由 yml 的 8 个 LLM 节点、2 个映射代码节点以及 `model.py` 的 QA 提示词导出，改过提示词或映射表后跑一次就能发现误改；**不需要 PyYAML**。
+- **`smoke_test.py`**：本地起一个伪造的 OpenAI 兼容服务，验证 8 字段提取 → `MAPPING` 注入候选类别 → `<think>`/空格清洗 → QA 聚类 JSON 解析 → `app.safe_run_model` 元数据。不碰真实数据库与接口。
+- **`check_prompts.py`**：把 `prompts/*.txt` 与 `mappings.py` 跟 `tests/source_snapshot.json` 逐字比对；基线文件的 `source` 字段记录了导出来源，改过提示词或映射表后跑一次就能发现误改；**不需要 PyYAML**。
+- **`verify_env.py`**：全部检查通过时退出码为 0，末行输出 `汇总：N 项，通过 N，失败 0`；任一失败退出码为 1。
+- **`smoke_test.py`**：全部断言通过时末行输出 `ALL_TESTS_PASSED`。
+- **`check_prompts.py`**：全部一致时输出 `全部一致：9 段提示词 + 25 条映射`，退出码为 0。
 
 两个脚本都可在 CI 里直接跑，任一不一致退出码为 1。
-
-## 十、本轮续做新增文件
-
-```
-.env                       本地运行配置，密码 / API Key 按实际环境照实填写
-.gitignore                 logs / data / 缓存（.env 按约定随项目交付，不忽略）
-Dockerfile                 python:3.11-slim + requirements，CMD 跑 app.py
-.dockerignore              排除 logs/data/缓存，不排除 .env
-docker-compose.yml         常驻定时服务 + run --rm 临时任务用法
-verify_env.py              只读五连自检
-tests/smoke_test.py        离线端到端回归（非流式 / 流式）
-tests/source_snapshot.json  yml / model.py 逐字导出的提示词与映射基线
-tests/check_prompts.py     零依赖基线比对
-config.py                  增加 .env 加载（优先级：export > .env > 默认值）
-```
-
-核心业务代码（`app.py` / `generate_qa.py` / `issue_workflow.py` / `llm_client.py` / `prompts/`）本轮**未改动逻辑**，仅补齐部署、自检、测试与配置外置；`小信智能体摘要提取.yml` 保留为历史对照，运行时不读取。
-
-后续按「个人局域网、不担心安全」的口径又调整了一次配置落地方式：删掉原先的占位模板，改为直接提供 `.env` 并把密码 / API Key 照实填好；同时把它从 `.gitignore` / `.dockerignore` 放行，保证文件随项目交付、也能被构建进镜像。业务代码一行未动。

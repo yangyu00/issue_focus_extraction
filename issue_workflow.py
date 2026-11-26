@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
 """「小信智能体摘要提取」工作流的本地直连实现。
 
-原 Dify 工作流（小信智能体摘要提取.yml）结构：
-    开始 → 6 个独立 LLM 节点（设备 / 业务 / 故障原因 / 分公司操作 / 厂商操作 / 故障详情）
-    业务 → [映射] → 二级分类 LLM → [映射2] → 故障现象 LLM
-    全部结果 → [代码执行]（清洗 + 组装 8 字段 JSON）→ 直接回复
+调用结构：
+    6 个互不依赖的字段（device / business / cause / branch_actions /
+    vendor_actions / symptom_detail）由 llm_client.chat() 并发调用；
+    业务 → MAPPING → 二级分类 → MAPPING → 故障现象串行；
+    全部结果经 clean_field() 清洗后，按 OUTPUT_KEYS 顺序组装 8 字段 JSON 字符串返回。
 
-现在把两个「映射」代码节点换成 mappings.py 的字典查表，
-把 8 个 LLM 节点换成 llm_client.chat() 直连调用，提示词来自 prompts/。
-输出仍是原「直接回复」节点的那一串 JSON 字符串，app.py 的解析逻辑无需改动。
+提示词来自 prompts/；返回值由 app.py 的 process_model_output_for_db() 解析。
 """
 import json
 import re
@@ -20,7 +18,7 @@ from mappings import MAPPING
 from prompt_loader import load_prompt
 from utils import logger
 
-# 与开始节点直接相连、彼此无依赖的 6 个字段
+# 彼此无依赖、可并发的 6 个字段
 PARALLEL_FIELDS = (
     "device",
     "business",
@@ -30,7 +28,7 @@ PARALLEL_FIELDS = (
     "symptom_detail",
 )
 
-# 与原「代码执行」节点输出字典的键顺序一致
+# 输出字典的键顺序
 OUTPUT_KEYS = (
     "device",
     "business",
@@ -44,14 +42,14 @@ OUTPUT_KEYS = (
 
 
 def clean_field(text):
-    """复刻 yml「代码执行」节点里的 process()：去换行、去 <think>、去所有空格。"""
+    """去换行、去 <think>、去所有空格。"""
     cleaned = re.sub(r"[\r\n]+", "", "" if text is None else str(text))
     cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL).replace(" ", "")
     return cleaned
 
 
 def clean_map_key(text):
-    """复刻 yml「映射 / 映射2」代码节点对 arg1 的清洗。"""
+    """对映射查表键做清洗：去 <think>、去空格、去换行。"""
     cleaned = re.sub(r"<think>.*?</think>", "", "" if text is None else str(text), flags=re.DOTALL)
     return cleaned.replace(" ", "").replace("\n", "")
 
@@ -84,7 +82,7 @@ def extract_issue(query):
             if err:
                 errors.append(err)
 
-    # 依赖链：业务 → 映射 → 二级分类 → 映射2 → 故障现象
+    # 依赖链：业务 → MAPPING → 二级分类 → MAPPING → 故障现象
     try:
         categories_for_subclass = MAPPING.get(clean_map_key(values.get("business", "")), "")
         values["subclass"] = _call("subclass", query, categories_for_subclass)

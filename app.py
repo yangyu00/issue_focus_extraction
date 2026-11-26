@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """小信智能体摘要提取 —— 工单解析入库（单入口）。
 
-合并了原 app.py（每日定时）与 app_batch.py（指定时段批量补跑）：
+用法：
     python app.py                          # 默认：立即跑昨天 + 每天定时调度
     python app.py --mode daily             # 只跑昨天一次
     python app.py --mode date --date 2026-04-01
     python app.py --mode batch --start 2026-04-01 --end 2026-04-28
 
-模型调用不再经过 Dify，改为 issue_workflow.run_extraction() 直连大模型。
+模型调用由 issue_workflow.run_extraction() 直连大模型。
 """
 import argparse
 import datetime
@@ -98,7 +97,7 @@ def _actions_to_str(val: Any) -> str:
 
 
 def build_labeled_input(row: pd.Series) -> str:
-    """构建输入给大模型的文本（与原工作流 sys.query 一致）。"""
+    """构建输入给大模型的文本。"""
     parts = []
     mapping = {
         "标题": row.get("taskTitle", ""),
@@ -130,7 +129,7 @@ def process_model_output_for_db(model_out: str) -> pd.Series:
     })
 
 
-# ================= 模型调用（改为直连） =================
+# ================= 模型调用 =================
 def safe_run_model(text_: str) -> dict:
     """执行一条工单的完整提取工作流。
 
@@ -393,7 +392,7 @@ def main():
         run_daily_job()
         return
 
-    # schedule：保持原 app.py 行为
+    # schedule：启动时跑昨天，随后按 --at 每日调度
     print("=== 服务已启动，等待定时任务触发 ===")
     if not args.no_run_now:
         run_daily_job()

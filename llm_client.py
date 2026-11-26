@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """直连大模型客户端（OpenAI 兼容 /v1/chat/completions）。
 
-替代原 dify.py 的 Dify 工作流请求：不再经过 134.84.148.13 的 Dify 应用，
-直接向模型服务发 chat/completions 请求。提示词全部来自 prompts/ 本地文件。
+向模型服务发 chat/completions 请求，支持限流、重试与非流式 / 流式 SSE。
+提示词全部来自 prompts/ 本地文件。
 """
 import json
 import re
@@ -130,7 +129,7 @@ def _request_once(prompt, model, temperature, stream, timeout):
 
 
 def chat(prompt, *, model=None, temperature=None, stream=None, timeout=None, max_retries=None):
-    """发送一条完整提示词（单 user 消息，与 yml 中把输入嵌在提示词里的写法一致），返回清洗后的文本。"""
+    """发送一条完整提示词（单 user 消息，输入嵌在提示词里），返回清洗后的文本。"""
     model = model or LLM_MODEL
     temperature = LLM_TEMPERATURE if temperature is None else temperature
     stream = LLM_STREAM if stream is None else stream
